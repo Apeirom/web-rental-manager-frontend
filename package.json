@@ -10,15 +10,17 @@
         "chromatic": "chromatic"
     },
     "lint-staged": {
-        "*.ts(x)?": [
-            "yarn lint --fix"
+        "*.{ts,tsx}": [
+            "eslint --fix"
         ]
     },
     "dependencies": {
+        "@ant-design/icons": "^6.2.3",
         "@radix-ui/react-accordion": "^1.1.0",
         "@radix-ui/react-icons": "^1.1.1",
         "@stitches/react": "^1.2.8",
-        "axios": "^0.27.2",
+        "antd": "^6.4.3",
+        "axios": "^1.16.1",
         "javascript-time-ago": "^2.5.9",
         "next": "^12.1.0",
         "next-images": "^1.8.2",

@@ -15,7 +15,7 @@ module.exports = {
             {
               protocol: 'https',
               hostname: 'encrypted-tbn0.gstatic.com',
-              port: '',
+              //port: '',
               pathname: '/images',
             },
           ],
