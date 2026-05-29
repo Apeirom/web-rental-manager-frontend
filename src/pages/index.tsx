@@ -1,8 +1,16 @@
 import { NextPage } from 'next';
-import FeedTemplate from 'template/Feed';
+import Head from 'next/head';
+import LoginTemplate from 'template/Login';
 
 const Home: NextPage = () => {
-    return <FeedTemplate />;
+    return (
+        <>
+            <Head>
+                <title>Login | Rental Manager</title>
+            </Head>
+            <LoginTemplate />
+        </>
+    );
 };
 
 export default Home;

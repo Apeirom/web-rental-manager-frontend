@@ -4,7 +4,6 @@ import { api } from './api';
 const ROUTE = '/analyses';
 
 export const AnalysisService = {
-    // Note que usamos o objeto 'params' do Axios para gerar os Query Parameters automaticamente
     getIncomeTax: async (
         startYear: number,
         startMonth: number,

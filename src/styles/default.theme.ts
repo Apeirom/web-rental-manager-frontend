@@ -1,63 +1,77 @@
 export const defaultTheme = {
     colors: {
-        sky1: 'hsl(205, 45.0%, 8.6%)',
-        sky2: 'hsl(202, 71.4%, 9.6%)',
-        sky3: 'hsl(201, 74.6%, 12.2%)',
-        sky4: 'hsl(201, 77.4%, 14.4%)',
-        sky5: 'hsl(200, 80.3%, 16.5%)',
-        sky6: 'hsl(200, 84.1%, 18.9%)',
-        sky7: 'hsl(199, 90.2%, 22.1%)',
-        sky8: 'hsl(198, 100%, 26.1%)',
-        sky9: 'hsl(193, 98.0%, 70.0%)',
-        sky10: 'hsl(192, 100%, 77.0%)',
-        sky11: 'hsl(192, 85.0%, 55.8%)',
-        sky12: 'hsl(198, 98.0%, 95.8%)',
+        // Brand Blue (Tons de Azul)
+        blue1: '#f0f8ff',
+        blue2: '#e0f0fe',
+        blue3: '#bae0fd',
+        blue4: '#7dc8fc',
+        blue5: '#36aef8',
+        blue6: '#0e90e2', // Cor Principal (Primary)
+        blue7: '#0272bc',
+        blue8: '#0360a1',
+        blue9: '#065186',
 
-        slate1: 'hsl(200, 7.0%, 8.8%)',
-        slate2: 'hsl(195, 7.1%, 11.0%)',
-        slate3: 'hsl(197, 6.8%, 13.6%)',
-        slate4: 'hsl(198, 6.6%, 15.8%)',
-        slate5: 'hsl(199, 6.4%, 17.9%)',
-        slate6: 'hsl(201, 6.2%, 20.5%)',
-        slate7: 'hsl(203, 6.0%, 24.3%)',
-        slate8: 'hsl(207, 5.6%, 31.6%)',
-        slate9: 'hsl(206, 6.0%, 43.9%)',
-        slate10: 'hsl(206, 5.2%, 49.5%)',
-        slate11: 'hsl(206, 6.0%, 63.0%)',
-        slate12: 'hsl(210, 6.0%, 93.0%)',
+        // Neutros (Tons de Cinza para fundos, bordas e textos)
+        slate1: '#f8f9fa', // Background principal do App
+        slate2: '#f1f3f5', // Background de cards
+        slate3: '#e9ecef',
+        slate4: '#dee2e6', // Bordas sutis
+        slate5: '#ced4da',
+        slate6: '#adb5bd', // Ícones inativos
+        slate7: '#868e96',
+        slate8: '#495057', // Textos secundários
+        slate9: '#343a40', // Textos principais
+        slate10: '#212529', // Títulos
 
         white: '#FFFFFF',
+        danger: '#fa5252',
+        success: '#40c057',
 
         onSurface: {
-            lowEmphasis: '#949494',
-            mediumEmphasis: '#545454',
-            highEmphasis: '#1E2732'
+            lowEmphasis: '#868e96',
+            mediumEmphasis: '#495057',
+            highEmphasis: '#212529'
         }
     },
     space: [4, 8, 12, 16, 24, 32, 48, 64, 96, 128, 192, 256],
     radii: {
-        sm: 8,
-        md: 16,
-        lg: 32
+        sm: '4px',
+        md: '8px',
+        lg: '16px',
+        round: '50%'
     },
     fontSizes: {
-        1: '12px',
-        2: '13px',
-        3: '15px'
+        xs: '12px',
+        sm: '14px',
+        md: '16px',
+        lg: '18px',
+        xl: '24px',
+        xxl: '32px'
     },
     fonts: {
-        untitled: 'Untitled Sans, apple-system, sans-serif',
+        untitled:
+            "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
         mono: 'Söhne Mono, menlo, monospace'
     },
-    fontWeights: {},
-    lineHeights: {},
-    letterSpacings: {},
-    sizes: {},
-    borderWidths: {},
-    borderStyles: {},
-    shadows: {},
-    zIndices: {},
-    transitions: {}
+    fontWeights: {
+        regular: 400,
+        medium: 500,
+        bold: 700
+    },
+    lineHeights: {
+        tight: 1.2,
+        base: 1.5,
+        loose: 1.75
+    },
+    shadows: {
+        sm: '0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24)',
+        md: '0 4px 6px rgba(0,0,0,0.1), 0 1px 3px rgba(0,0,0,0.08)',
+        lg: '0 10px 20px rgba(0,0,0,0.15), 0 3px 6px rgba(0,0,0,0.10)'
+    },
+    transitions: {
+        fast: '0.2s ease-in-out',
+        base: '0.3s ease-in-out'
+    }
 };
 
 export type Theme = typeof defaultTheme;

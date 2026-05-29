@@ -7,13 +7,11 @@ interface AppProviderProps {
 }
 
 const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
-    return(
+    return (
         <AuthProvider>
-            <ThemeProvider theme={defaultTheme}>
-                {children}
-            </ThemeProvider>
+            <ThemeProvider theme={defaultTheme}>{children}</ThemeProvider>
         </AuthProvider>
-    )
+    );
 };
 
 export default AppProvider;

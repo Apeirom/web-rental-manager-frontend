@@ -12,7 +12,9 @@ interface AuthContextData {
 
 const AuthContext = createContext<AuthContextData>({} as AuthContextData);
 
-export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
+    children
+}) => {
     const [user, setUser] = useState<IUser | null>(null);
 
     useEffect(() => {
@@ -26,17 +28,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     const signIn = async (email: string, password: string) => {
         try {
-            const { access_token } = await AuthService.login(email, password);
-            const loggedUser: IUser = { key: '123', email, name: 'Admin', role: 'master' };
+            const loginResponse = await AuthService.login(email, password);
+            const loggedUser: IUser = loginResponse.user;
+            const accessToken: string = loginResponse.token.access_token;
 
-            localStorage.setItem('@RentalManager:token', access_token);
-            localStorage.setItem('@RentalManager:user', JSON.stringify(loggedUser));
-            
-            api.defaults.headers.common['Authorization'] = `Bearer ${access_token}`;
+            localStorage.setItem('@RentalManager:token', accessToken);
+            localStorage.setItem(
+                '@RentalManager:user',
+                JSON.stringify(loggedUser)
+            );
+
+            api.defaults.headers.common.Authorization = `Bearer ${accessToken}`;
             setUser(loggedUser);
-
         } catch (error) {
-            console.error("Erro ao fazer login", error);
+            console.error('Erro ao fazer login', error);
             throw error;
         }
     };
@@ -48,7 +53,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
 
     return (
-        <AuthContext.Provider value={{ user, isAuthenticated: !!user, signIn, signOut }}>
+        <AuthContext.Provider
+            value={{ user, isAuthenticated: !!user, signIn, signOut }}
+        >
             {children}
         </AuthContext.Provider>
     );

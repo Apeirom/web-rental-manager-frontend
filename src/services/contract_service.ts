@@ -36,6 +36,7 @@ export const ContractService = {
             formData,
             {
                 headers: {
+                    // eslint-disable-next-line @typescript-eslint/naming-convention
                     'Content-Type': 'multipart/form-data'
                 }
             }
