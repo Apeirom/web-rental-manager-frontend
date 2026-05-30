@@ -82,7 +82,7 @@ export const ExtractTable: React.FC = () => {
         },
         {
             title: 'Doc',
-            dataIndex: 'receipt_path',
+            dataIndex: 'file_path',
             key: 'receipt',
             align: 'center' as const,
             render: (path: string) =>
