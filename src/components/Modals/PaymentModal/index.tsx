@@ -28,7 +28,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
                 payment_date: initialData.payment_date,
                 month_ref: initialData.month_ref,
                 year_ref: initialData.year_ref,
-                receipt_path: initialData.receipt_path
+                file_path: initialData.file_path
             });
         } else if (isOpen) {
             form.resetFields();

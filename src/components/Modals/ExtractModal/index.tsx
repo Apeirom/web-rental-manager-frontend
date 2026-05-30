@@ -44,8 +44,8 @@ export const ExtractModal: React.FC<ExtractModalProps> = ({
                 other_revenues: initialData.other_revenues,
                 bank_fee: initialData.bank_fee
             });
-            if (initialData.receipt_path) {
-                setPdfPreviewUrl(initialData.receipt_path);
+            if (initialData.file_path) {
+                setPdfPreviewUrl(initialData.file_path);
             }
         } else if (isOpen) {
             form.resetFields();
