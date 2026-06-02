@@ -5,6 +5,7 @@ import {
     IBailInsurancePayload,
     IBailInsurance
 } from 'interfaces/bail_insurance';
+import { parseCurrencyInput } from 'utils/formatters';
 import { StyledModal } from '../sharedStyles';
 
 interface BailInsuranceModalProps {
@@ -97,6 +98,8 @@ export const BailInsuranceModal: React.FC<BailInsuranceModalProps> = ({
                         style={{ width: '100%' }}
                         placeholder="Ex: 1500.00"
                         precision={2}
+                        decimalSeparator=","
+                        parser={parseCurrencyInput}
                     />
                 </Form.Item>
 

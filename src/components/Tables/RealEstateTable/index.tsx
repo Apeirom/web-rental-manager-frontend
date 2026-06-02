@@ -4,6 +4,7 @@ import { PlusOutlined, EditOutlined, ReloadOutlined } from '@ant-design/icons';
 import { IRealEstate } from 'interfaces/real_estate';
 import { RealEstateService } from 'services/real_estate_service';
 import { RealEstateModal } from 'components/Modals/RealEstateModal';
+import { fromApiPercentage } from 'utils/formatters';
 import { TableContainer, Toolbar, FiltersArea } from '../sharedStyles';
 
 export const RealEstateTable: React.FC = () => {
@@ -79,7 +80,7 @@ export const RealEstateTable: React.FC = () => {
             title: 'Taxa (%)',
             dataIndex: 'commission',
             key: 'commission',
-            render: (val: number) => `${val}%`
+            render: (val: number) => `${fromApiPercentage(val)}%`
         },
         { title: 'Telefone', dataIndex: 'phone', key: 'phone' },
         {
