@@ -13,35 +13,60 @@ import { TableContainer, Toolbar, FiltersArea } from '../sharedStyles';
 
 export const PaymentTable: React.FC = () => {
     const [payments, setPayments] = useState<IPayment[]>([]);
+    const [total, setTotal] = useState(0);
     const [loading, setLoading] = useState(false);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingPayment, setEditingPayment] = useState<IPayment | null>(null);
     const [onlyActiveContracts, setOnlyActiveContracts] = useState(true);
     const [searchText, setSearchText] = useState('');
 
+    const [tableParams, setTableParams] = useState({
+        current: 1,
+        pageSize: 10
+    });
+
     const fetchPayments = useCallback(async () => {
         setLoading(true);
         try {
-            const data = await PaymentService.getAll();
-            setPayments(data);
+            const skip = (tableParams.current - 1) * tableParams.pageSize;
+            const response = await PaymentService.getPaginate({
+                skip,
+                limit: tableParams.pageSize,
+                search_term: searchText || undefined,
+                only_active_contracts: onlyActiveContracts
+            });
+            setPayments(response.data);
+            setTotal(response.total);
         } catch (error) {
             console.error(error);
         } finally {
             setLoading(false);
         }
-    }, []);
+    }, [onlyActiveContracts, searchText, tableParams]);
 
     useEffect(() => {
-        fetchPayments();
+        const timeoutId = setTimeout(() => {
+            fetchPayments();
+        }, 500);
+        return () => clearTimeout(timeoutId);
     }, [fetchPayments]);
 
-    const filtered = payments.filter((p) => {
-        const term = searchText.toLowerCase();
-        return (
-            p.contract.tenant.name.toLowerCase().includes(term) ||
-            p.contract.property.property_name.toLowerCase().includes(term)
-        );
-    });
+    const handleTableChange = (pagination: any) => {
+        setTableParams({
+            current: pagination.current,
+            pageSize: pagination.pageSize
+        });
+    };
+
+    const handleCreateNew = () => {
+        setEditingPayment(null);
+        setIsModalOpen(true);
+    };
+
+    const handleEdit = (record: IPayment) => {
+        setEditingPayment(record);
+        setIsModalOpen(true);
+    };
 
     const columns = [
         {
@@ -92,10 +117,7 @@ export const PaymentTable: React.FC = () => {
                     <Button
                         type="text"
                         icon={<EditOutlined style={{ color: '#0e90e2' }} />}
-                        onClick={() => {
-                            setEditingPayment(record);
-                            setIsModalOpen(true);
-                        }}
+                        onClick={() => handleEdit(record)}
                     />
                 </Tooltip>
             )
@@ -109,13 +131,22 @@ export const PaymentTable: React.FC = () => {
                     <Input.Search
                         placeholder="Buscar inquilino ou imóvel..."
                         allowClear
-                        onSearch={setSearchText}
+                        onChange={(e) => {
+                            setSearchText(e.target.value);
+                            setTableParams((prev) => ({ ...prev, current: 1 }));
+                        }}
                         style={{ width: 280 }}
                     />
                     <Space>
                         <Switch
                             checked={onlyActiveContracts}
-                            onChange={setOnlyActiveContracts}
+                            onChange={(checked) => {
+                                setOnlyActiveContracts(checked);
+                                setTableParams((prev) => ({
+                                    ...prev,
+                                    current: 1
+                                }));
+                            }}
                         />
                         <span style={{ fontSize: '14px', color: '#495057' }}>
                             Apenas Contratos Ativos
@@ -133,10 +164,7 @@ export const PaymentTable: React.FC = () => {
                     <Button
                         type="primary"
                         icon={<PlusOutlined />}
-                        onClick={() => {
-                            setEditingPayment(null);
-                            setIsModalOpen(true);
-                        }}
+                        onClick={handleCreateNew}
                     >
                         Novo Pagamento
                     </Button>
@@ -144,9 +172,16 @@ export const PaymentTable: React.FC = () => {
             </Toolbar>
             <Table
                 columns={columns}
-                dataSource={filtered}
+                dataSource={payments}
                 rowKey="key"
                 loading={loading}
+                onChange={handleTableChange}
+                pagination={{
+                    current: tableParams.current,
+                    pageSize: tableParams.pageSize,
+                    total,
+                    showSizeChanger: false
+                }}
             />
             <PaymentModal
                 isOpen={isModalOpen}

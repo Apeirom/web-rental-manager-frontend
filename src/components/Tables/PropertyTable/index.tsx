@@ -8,38 +8,64 @@ import { TableContainer, Toolbar, FiltersArea } from '../sharedStyles';
 
 export const PropertyTable: React.FC = () => {
     const [properties, setProperties] = useState<IProperty[]>([]);
+    const [total, setTotal] = useState(0);
     const [loading, setLoading] = useState(false);
 
     const [isModalOpen, setIsModalOpen] = useState(false);
-    const [onlyActiveContracts, setOnlyActiveContracts] = useState(true);
+    const [editingProperty, setEditingProperty] = useState<IProperty | null>(
+        null
+    );
+
+    const [onlyActiveContracts, setOnlyActiveContracts] = useState(false);
     const [searchText, setSearchText] = useState('');
+
+    const [tableParams, setTableParams] = useState({
+        current: 1,
+        pageSize: 10
+    });
 
     const fetchProperties = useCallback(async () => {
         setLoading(true);
         try {
-            const data = await PropertyService.getAll();
-            setProperties(data);
+            const skip = (tableParams.current - 1) * tableParams.pageSize;
+            const response = await PropertyService.getPaginate({
+                skip,
+                limit: tableParams.pageSize,
+                search_term: searchText || undefined,
+                only_active_contracts: onlyActiveContracts
+            });
+            setProperties(response.data);
+            setTotal(response.total);
         } catch (error) {
             console.error(error);
         } finally {
             setLoading(false);
         }
-    }, []);
+    }, [onlyActiveContracts, searchText, tableParams]);
 
     useEffect(() => {
-        fetchProperties();
+        const timeoutId = setTimeout(() => {
+            fetchProperties();
+        }, 500);
+        return () => clearTimeout(timeoutId);
     }, [fetchProperties]);
 
-    const filteredProperties = properties.filter((prop) => {
-        if (searchText) {
-            const term = searchText.toLowerCase();
-            return (
-                prop.property_name.toLowerCase().includes(term) ||
-                prop.owner_name.toLowerCase().includes(term)
-            );
-        }
-        return true;
-    });
+    const handleTableChange = (pagination: any) => {
+        setTableParams({
+            current: pagination.current,
+            pageSize: pagination.pageSize
+        });
+    };
+
+    const handleCreateNew = () => {
+        setEditingProperty(null);
+        setIsModalOpen(true);
+    };
+
+    const handleEdit = (record: IProperty) => {
+        setEditingProperty(record);
+        setIsModalOpen(true);
+    };
 
     const columns = [
         {
@@ -66,6 +92,7 @@ export const PropertyTable: React.FC = () => {
                     <Button
                         type="text"
                         icon={<EditOutlined style={{ color: '#0e90e2' }} />}
+                        onClick={() => handleEdit(record)}
                     />
                 </Tooltip>
             )
@@ -79,13 +106,22 @@ export const PropertyTable: React.FC = () => {
                     <Input.Search
                         placeholder="Buscar por imóvel ou proprietário..."
                         allowClear
-                        onSearch={setSearchText}
+                        onChange={(e) => {
+                            setSearchText(e.target.value);
+                            setTableParams((prev) => ({ ...prev, current: 1 }));
+                        }}
                         style={{ width: 280 }}
                     />
                     <Space>
                         <Switch
                             checked={onlyActiveContracts}
-                            onChange={setOnlyActiveContracts}
+                            onChange={(checked) => {
+                                setOnlyActiveContracts(checked);
+                                setTableParams((prev) => ({
+                                    ...prev,
+                                    current: 1
+                                }));
+                            }}
                         />
                         <span style={{ fontSize: '14px', color: '#495057' }}>
                             Apenas em Contratos Ativos
@@ -104,7 +140,7 @@ export const PropertyTable: React.FC = () => {
                     <Button
                         type="primary"
                         icon={<PlusOutlined />}
-                        onClick={() => setIsModalOpen(true)}
+                        onClick={handleCreateNew}
                     >
                         Novo Imóvel
                     </Button>
@@ -113,15 +149,22 @@ export const PropertyTable: React.FC = () => {
 
             <Table
                 columns={columns}
-                dataSource={filteredProperties}
+                dataSource={properties}
                 rowKey="key"
                 loading={loading}
-                pagination={{ pageSize: 10 }}
+                onChange={handleTableChange}
+                pagination={{
+                    current: tableParams.current,
+                    pageSize: tableParams.pageSize,
+                    total,
+                    showSizeChanger: false
+                }}
             />
             <PropertyModal
                 isOpen={isModalOpen}
                 onClose={() => setIsModalOpen(false)}
                 onSuccess={fetchProperties}
+                initialData={editingProperty}
             />
         </TableContainer>
     );

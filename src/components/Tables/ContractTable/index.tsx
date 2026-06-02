@@ -8,54 +8,52 @@ import { TableContainer, Toolbar, FiltersArea } from '../sharedStyles';
 
 export const ContractTable: React.FC = () => {
     const [contracts, setContracts] = useState<IContract[]>([]);
+    const [total, setTotal] = useState(0);
     const [loading, setLoading] = useState(false);
-
-    // Estados do Modal
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingContract, setEditingContract] = useState<IContract | null>(
         null
     );
-
-    // Estados dos Filtros
     const [onlyActiveContracts, setOnlyActiveContracts] = useState(true);
     const [searchText, setSearchText] = useState('');
+
+    const [tableParams, setTableParams] = useState({
+        current: 1,
+        pageSize: 10
+    });
 
     const fetchContracts = useCallback(async () => {
         setLoading(true);
         try {
-            // Futuramente, passaremos os parâmetros de paginação e switch de ativos para o Service aqui!
-            const data = await ContractService.getAll();
-            setContracts(data);
+            const skip = (tableParams.current - 1) * tableParams.pageSize;
+            const response = await ContractService.getPaginate({
+                skip,
+                limit: tableParams.pageSize,
+                status: onlyActiveContracts ? 'active' : undefined,
+                search_term: searchText || undefined
+            });
+            setContracts(response.data);
+            setTotal(response.total);
         } catch (error) {
             console.error('Erro ao carregar contratos', error);
         } finally {
             setLoading(false);
         }
-    }, []);
+    }, [onlyActiveContracts, searchText, tableParams]);
 
     useEffect(() => {
-        fetchContracts();
+        const timeoutId = setTimeout(() => {
+            fetchContracts();
+        }, 500);
+        return () => clearTimeout(timeoutId);
     }, [fetchContracts]);
 
-    // Filtragem Local (Provisória até o backend estar 100% conectado com a paginação)
-    const filteredContracts = contracts.filter((contract) => {
-        // Filtro 1: Apenas Ativos (O seu switch futuro)
-        if (onlyActiveContracts && contract.status !== 'active') return false;
-
-        // Filtro 2: Busca por texto (Inquilino ou Imóvel)
-        if (searchText) {
-            const term = searchText.toLowerCase();
-            const tenantMatch = contract.tenant.name
-                .toLowerCase()
-                .includes(term);
-            const propertyMatch = contract.property.property_name
-                .toLowerCase()
-                .includes(term);
-            if (!tenantMatch && !propertyMatch) return false;
-        }
-
-        return true;
-    });
+    const handleTableChange = (pagination: any) => {
+        setTableParams({
+            current: pagination.current,
+            pageSize: pagination.pageSize
+        });
+    };
 
     const handleCreateNew = () => {
         setEditingContract(null);
@@ -67,7 +65,6 @@ export const ContractTable: React.FC = () => {
         setIsModalOpen(true);
     };
 
-    // Definição das Colunas da Tabela do Ant Design
     const columns = [
         {
             title: 'Inquilino',
@@ -129,14 +126,23 @@ export const ContractTable: React.FC = () => {
                     <Input.Search
                         placeholder="Buscar por inquilino ou imóvel..."
                         allowClear
-                        onSearch={setSearchText}
+                        onChange={(e) => {
+                            setSearchText(e.target.value);
+                            setTableParams((prev) => ({ ...prev, current: 1 }));
+                        }}
                         style={{ width: 280 }}
                     />
 
                     <Space>
                         <Switch
                             checked={onlyActiveContracts}
-                            onChange={setOnlyActiveContracts}
+                            onChange={(checked) => {
+                                setOnlyActiveContracts(checked);
+                                setTableParams((prev) => ({
+                                    ...prev,
+                                    current: 1
+                                }));
+                            }}
                         />
                         <span style={{ fontSize: '14px', color: '#495057' }}>
                             Apenas Contratos Ativos
@@ -164,17 +170,22 @@ export const ContractTable: React.FC = () => {
 
             <Table
                 columns={columns}
-                dataSource={filteredContracts}
-                rowKey="key" // Importantíssimo para a performance do React
+                dataSource={contracts}
+                rowKey="key"
                 loading={loading}
-                pagination={{ pageSize: 10 }}
+                onChange={handleTableChange}
+                pagination={{
+                    current: tableParams.current,
+                    pageSize: tableParams.pageSize,
+                    total,
+                    showSizeChanger: false
+                }}
             />
 
-            {/* O Modal super complexo que criamos! */}
             <ContractModal
                 isOpen={isModalOpen}
                 onClose={() => setIsModalOpen(false)}
-                onSuccess={fetchContracts} // Quando salvar, recarrega a tabela automaticamente
+                onSuccess={fetchContracts}
                 initialData={editingContract}
             />
         </TableContainer>

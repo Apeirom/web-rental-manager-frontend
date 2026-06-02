@@ -5,7 +5,6 @@ import { IExtract, IExtractPayload } from 'interfaces/extract';
 import { ExtractService } from 'services/extract_service';
 import { ContractDropdown } from '../../Dropdowns/ContractDropdown';
 
-// Importando os estilos divididos (iguais aos do contrato)
 import { WideModal, SplitLayout, LeftPane, RightPane } from './styles';
 
 interface ExtractModalProps {
@@ -24,7 +23,6 @@ export const ExtractModal: React.FC<ExtractModalProps> = ({
     const [form] = Form.useForm<IExtractPayload>();
     const [loading, setLoading] = useState(false);
 
-    // Controle de PDF
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
     const [pdfPreviewUrl, setPdfPreviewUrl] = useState<string | null>(null);
 
@@ -75,7 +73,6 @@ export const ExtractModal: React.FC<ExtractModalProps> = ({
         try {
             let savedExtract: IExtract;
 
-            // Preenchendo valores que vieram vazios com 0 (para garantir consistência financeira)
             const payloadWithDefaults: IExtractPayload = {
                 ...values,
                 rent_amount: values.rent_amount || 0,
@@ -89,7 +86,6 @@ export const ExtractModal: React.FC<ExtractModalProps> = ({
                 bank_fee: values.bank_fee || 0
             };
 
-            // 1. Salva ou Atualiza
             if (initialData) {
                 savedExtract = await ExtractService.update(
                     initialData.key,
@@ -101,7 +97,6 @@ export const ExtractModal: React.FC<ExtractModalProps> = ({
                 message.success('Extrato gerado com sucesso!');
             }
 
-            // 2. Se houver comprovante NOVO
             if (selectedFile) {
                 await ExtractService.uploadReceipt(
                     savedExtract.key,
@@ -136,7 +131,6 @@ export const ExtractModal: React.FC<ExtractModalProps> = ({
             centered
         >
             <SplitLayout>
-                {/* PAINEL ESQUERDO: Comprovante PDF */}
                 <LeftPane>
                     {pdfPreviewUrl ? (
                         <>
@@ -194,7 +188,6 @@ export const ExtractModal: React.FC<ExtractModalProps> = ({
                     )}
                 </LeftPane>
 
-                {/* PAINEL DIREITO: Formulário Financeiro */}
                 <RightPane>
                     <Form form={form} layout="vertical" onFinish={handleSubmit}>
                         <Form.Item
@@ -240,7 +233,6 @@ export const ExtractModal: React.FC<ExtractModalProps> = ({
                             </Form.Item>
                         </div>
 
-                        {/* LINHA DIVISÓRIA PARA ORGANIZAR VALORES */}
                         <div
                             style={{
                                 borderBottom: '1px solid #e9ecef',

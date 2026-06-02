@@ -1,11 +1,27 @@
 import { IContract, IContractPayload } from 'interfaces/contract';
+import { IPaginatedResponse } from 'interfaces/pagination';
 import { api } from './api';
 
 const ROUTE = '/contracts';
 
+export interface GetContractsParams {
+    skip?: number;
+    limit?: number;
+    search_term?: string;
+    room_name?: string;
+    property_name?: string;
+    tenant_name?: string;
+    real_estate_name?: string;
+    status?: string;
+}
+
 export const ContractService = {
-    getAll: async (): Promise<IContract[]> => {
-        const { data } = await api.get<IContract[]>(ROUTE);
+    getPaginate: async (
+        params: GetContractsParams
+    ): Promise<IPaginatedResponse<IContract>> => {
+        const { data } = await api.get<IPaginatedResponse<IContract>>(ROUTE, {
+            params
+        });
         return data;
     },
     getByKey: async (key: string): Promise<IContract> => {
@@ -26,7 +42,6 @@ export const ContractService = {
     delete: async (key: string): Promise<void> => {
         await api.delete(`${ROUTE}/${key}`);
     },
-    // Função especial para upload do PDF do contrato
     uploadDocument: async (key: string, file: File): Promise<IContract> => {
         const formData = new FormData();
         formData.append('file', file);

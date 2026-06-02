@@ -79,3 +79,17 @@ export const LogoutContainer = styled.div`
         }
     }
 `;
+
+export const ComingSoonBadge = styled.span`
+    font-size: 10px;
+    display: flex;
+    align-items: center;
+    height: 22px;
+    background-color: ${({ theme }) => theme.colors.slate3};
+    color: ${({ theme }) => theme.colors.slate9};
+    padding: 2px 6px;
+    border-radius: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+`;

@@ -14,7 +14,8 @@ import {
     UserInfoContainer,
     UserEmail,
     MenuContainer,
-    LogoutContainer
+    LogoutContainer,
+    ComingSoonBadge
 } from './styles';
 
 interface SidebarProps {
@@ -25,23 +26,45 @@ interface SidebarProps {
 export const Sidebar: React.FC<SidebarProps> = ({ user, onLogout }) => {
     const router = useRouter();
 
-    const menuItems = [
+    const rawMenuItems = [
         {
             key: '/controle',
             icon: <AppstoreOutlined />,
-            label: 'Controle'
+            label: 'Controle',
+            comingSoon: false
         },
         {
             key: '/analises',
             icon: <LineChartOutlined />,
-            label: 'Análises'
+            label: 'Análises',
+            comingSoon: true
         },
         {
             key: '/relatorios',
             icon: <FilePdfOutlined />,
-            label: 'Relatórios'
+            label: 'Relatórios',
+            comingSoon: true
         }
     ];
+
+    const menuItems = rawMenuItems.map((item) => ({
+        key: item.key,
+        icon: item.icon,
+        disabled: item.comingSoon,
+        label: (
+            <div
+                style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    width: '100%'
+                }}
+            >
+                <span>{item.label}</span>
+                {item.comingSoon && <ComingSoonBadge>Em breve</ComingSoonBadge>}
+            </div>
+        )
+    }));
 
     const handleNavigate = (route: string) => {
         router.push(route);
