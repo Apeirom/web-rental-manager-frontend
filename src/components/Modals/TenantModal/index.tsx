@@ -1,33 +1,57 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Form, Input, message } from 'antd';
 import { TenantService } from 'services/tenant_service';
-import { ITenantPayload } from 'interfaces/tenant';
+import { ITenantPayload, ITenant } from 'interfaces/tenant';
 import { StyledModal } from '../sharedStyles';
 
 interface TenantModalProps {
     isOpen: boolean;
     onClose: () => void;
     onSuccess?: () => void;
+    initialData?: ITenant | null;
 }
 
 export const TenantModal: React.FC<TenantModalProps> = ({
     isOpen,
     onClose,
-    onSuccess
+    onSuccess,
+    initialData
 }) => {
     const [form] = Form.useForm<ITenantPayload>();
     const [loading, setLoading] = useState(false);
 
+    useEffect(() => {
+        if (isOpen) {
+            if (initialData) {
+                form.setFieldsValue({
+                    name: initialData.name,
+                    document_number: initialData.document_number
+                });
+            } else {
+                form.resetFields();
+            }
+        }
+    }, [isOpen, initialData, form]);
+
     const handleSubmit = async (values: ITenantPayload) => {
         setLoading(true);
         try {
-            await TenantService.create(values);
-            message.success('Inquilino cadastrado com sucesso!');
+            if (initialData) {
+                await TenantService.update(initialData.key, values);
+                message.success('Inquilino atualizado com sucesso!');
+            } else {
+                await TenantService.create(values);
+                message.success('Inquilino cadastrado com sucesso!');
+            }
             form.resetFields();
             if (onSuccess) onSuccess();
             onClose();
         } catch (error) {
-            message.error('Erro ao cadastrar inquilino. Verifique os dados.');
+            message.error(
+                `Erro ao ${
+                    initialData ? 'atualizar' : 'cadastrar'
+                } inquilino. Verifique os dados.`
+            );
             console.error(error);
         } finally {
             setLoading(false);
@@ -36,7 +60,7 @@ export const TenantModal: React.FC<TenantModalProps> = ({
 
     return (
         <StyledModal
-            title="Novo Inquilino"
+            title={initialData ? 'Editar Inquilino' : 'Novo Inquilino'}
             open={isOpen}
             onCancel={onClose}
             onOk={() => form.submit()}

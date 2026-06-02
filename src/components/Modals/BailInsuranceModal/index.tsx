@@ -1,33 +1,62 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Form, Input, InputNumber, message } from 'antd';
 import { BailInsuranceService } from 'services/bail_insurance_service';
-import { IBailInsurancePayload } from 'interfaces/bail_insurance';
+import {
+    IBailInsurancePayload,
+    IBailInsurance
+} from 'interfaces/bail_insurance';
 import { StyledModal } from '../sharedStyles';
 
 interface BailInsuranceModalProps {
     isOpen: boolean;
     onClose: () => void;
     onSuccess?: () => void;
+    initialData?: IBailInsurance | null;
 }
 
 export const BailInsuranceModal: React.FC<BailInsuranceModalProps> = ({
     isOpen,
     onClose,
-    onSuccess
+    onSuccess,
+    initialData
 }) => {
     const [form] = Form.useForm<IBailInsurancePayload>();
     const [loading, setLoading] = useState(false);
 
+    useEffect(() => {
+        if (isOpen) {
+            if (initialData) {
+                form.setFieldsValue({
+                    insurance_company: initialData.insurance_company,
+                    value: initialData.value,
+                    validity: initialData.validity
+                });
+            } else {
+                form.resetFields();
+            }
+        }
+    }, [isOpen, initialData, form]);
+
     const handleSubmit = async (values: IBailInsurancePayload) => {
         setLoading(true);
         try {
-            await BailInsuranceService.create(values);
-            message.success('Seguro fiança cadastrado com sucesso!');
+            if (initialData) {
+                await BailInsuranceService.update(initialData.key, values);
+                message.success('Seguro fiança atualizado com sucesso!');
+            } else {
+                await BailInsuranceService.create(values);
+                message.success('Seguro fiança cadastrado com sucesso!');
+            }
+
             form.resetFields();
             if (onSuccess) onSuccess();
             onClose();
         } catch (error) {
-            message.error('Erro ao cadastrar seguro fiança.');
+            message.error(
+                `Erro ao ${
+                    initialData ? 'atualizar' : 'cadastrar'
+                } seguro fiança.`
+            );
         } finally {
             setLoading(false);
         }
@@ -35,7 +64,7 @@ export const BailInsuranceModal: React.FC<BailInsuranceModalProps> = ({
 
     return (
         <StyledModal
-            title="Novo Seguro Fiança"
+            title={initialData ? 'Editar Seguro Fiança' : 'Novo Seguro Fiança'}
             open={isOpen}
             onCancel={onClose}
             onOk={() => form.submit()}
@@ -48,7 +77,12 @@ export const BailInsuranceModal: React.FC<BailInsuranceModalProps> = ({
                 <Form.Item
                     label="Seguradora"
                     name="insurance_company"
-                    rules={[{ required: true }]}
+                    rules={[
+                        {
+                            required: true,
+                            message: 'Insira o nome da seguradora'
+                        }
+                    ]}
                 >
                     <Input placeholder="Ex: Porto Seguro" />
                 </Form.Item>
@@ -56,7 +90,7 @@ export const BailInsuranceModal: React.FC<BailInsuranceModalProps> = ({
                 <Form.Item
                     label="Valor (R$)"
                     name="value"
-                    rules={[{ required: true }]}
+                    rules={[{ required: true, message: 'Insira o valor' }]}
                 >
                     <InputNumber
                         min={0}
@@ -69,7 +103,7 @@ export const BailInsuranceModal: React.FC<BailInsuranceModalProps> = ({
                 <Form.Item
                     label="Validade"
                     name="validity"
-                    rules={[{ required: true }]}
+                    rules={[{ required: true, message: 'Insira a validade' }]}
                 >
                     <Input placeholder="Ex: 12/2027 ou 31/12/2027" />
                 </Form.Item>

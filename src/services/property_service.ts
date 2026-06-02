@@ -1,11 +1,25 @@
 import { IProperty, IPropertyPayload } from 'interfaces/property';
+import { IPaginatedResponse } from 'interfaces/pagination';
 import { api } from './api';
 
 const ROUTE = '/properties';
 
+export interface GetPropertiesParams {
+    skip?: number;
+    limit?: number;
+    search_term?: string;
+    property_name?: string;
+    owner_name?: string;
+    only_active_contracts?: boolean;
+}
+
 export const PropertyService = {
-    getAll: async (): Promise<IProperty[]> => {
-        const { data } = await api.get<IProperty[]>(ROUTE);
+    getPaginate: async (
+        params: GetPropertiesParams
+    ): Promise<IPaginatedResponse<IProperty>> => {
+        const { data } = await api.get<IPaginatedResponse<IProperty>>(ROUTE, {
+            params
+        });
         return data;
     },
     getByKey: async (key: string): Promise<IProperty> => {

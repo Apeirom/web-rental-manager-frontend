@@ -22,22 +22,26 @@ export const BailInsuranceDropdown: React.FC<BailInsuranceDropdownProps> = ({
     const [insurances, setInsurances] = useState<IBailInsurance[]>([]);
     const [loading, setLoading] = useState(false);
 
+    const fetchInsurances = async (search?: string) => {
+        setLoading(true);
+        try {
+            const response = await BailInsuranceService.getPaginate({
+                skip: 0,
+                limit: 30,
+                search_term: search || undefined
+            });
+            setInsurances(response.data);
+        } catch (error) {
+            console.error('Erro ao carregar seguros', error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
     useEffect(() => {
-        const fetchData = async () => {
-            setLoading(true);
-            try {
-                const data = await BailInsuranceService.getAll();
-                setInsurances(data);
-            } catch (error) {
-                console.error('Erro ao carregar seguros', error);
-            } finally {
-                setLoading(false);
-            }
-        };
-        fetchData();
+        fetchInsurances();
     }, []);
 
-    // Função auxiliar para formatar moeda (Opcional, mas ajuda muito visualmente)
     const formatCurrency = (val: number) => {
         return new Intl.NumberFormat('pt-BR', {
             style: 'currency',
@@ -49,12 +53,9 @@ export const BailInsuranceDropdown: React.FC<BailInsuranceDropdownProps> = ({
         <SelectContainer>
             {label && <Label>{label}</Label>}
             <Select
-                showSearch={{
-                    filterOption: (input, option) =>
-                        (
-                            option?.label?.toString().toLowerCase() ?? ''
-                        ).includes(input.toLowerCase())
-                }}
+                showSearch
+                filterOption={false} // Desabilitamos o filtro local para usar o do servidor
+                onSearch={(val) => fetchInsurances(val)}
                 value={value || undefined}
                 placeholder={placeholder}
                 disabled={disabled || loading}
