@@ -16,6 +16,8 @@ import {
 import { IContract, IContractPayload } from 'interfaces/contract';
 import { ContractService } from 'services/contract_service';
 
+import { parseCurrencyInput } from 'utils/formatters';
+
 // Importando nossos Dropdowns
 import { TenantDropdown } from '../../Dropdowns/TenantDropdown';
 import { PropertyDropdown } from '../../Dropdowns/PropertyDropdown';
@@ -42,7 +44,7 @@ interface ContractModalProps {
     isOpen: boolean;
     onClose: () => void;
     onSuccess?: () => void;
-    initialData?: IContract | null; // Se vier preenchido, estamos no modo EDIÇÃO
+    initialData?: IContract | null;
 }
 
 export const ContractModal: React.FC<ContractModalProps> = ({
@@ -71,7 +73,6 @@ export const ContractModal: React.FC<ContractModalProps> = ({
         setModals((prev) => ({ ...prev, [modalName]: state }));
     };
 
-    // Preenche o formulário e a visualização do PDF quando for modo de Edição
     useEffect(() => {
         if (isOpen && initialData) {
             form.setFieldsValue({
@@ -96,7 +97,6 @@ export const ContractModal: React.FC<ContractModalProps> = ({
         }
     }, [isOpen, initialData, form]);
 
-    // Trata a seleção do arquivo local e gera uma URL temporária para o iframe
     const handleFileChange = (info: any) => {
         const file = info.file as File;
         if (file) {
@@ -106,7 +106,6 @@ export const ContractModal: React.FC<ContractModalProps> = ({
     };
 
     const handleClose = () => {
-        // Limpa a URL temporária da memória do navegador para não causar vazamento
         if (selectedFile && pdfPreviewUrl) URL.revokeObjectURL(pdfPreviewUrl);
         form.resetFields();
         setSelectedFile(null);
@@ -119,7 +118,6 @@ export const ContractModal: React.FC<ContractModalProps> = ({
         try {
             let savedContract: IContract;
 
-            // 1. Salva ou Atualiza os dados de texto
             if (initialData) {
                 savedContract = await ContractService.update(
                     initialData.key,
@@ -131,7 +129,6 @@ export const ContractModal: React.FC<ContractModalProps> = ({
                 message.success('Contrato criado com sucesso!');
             }
 
-            // 2. Se houver um arquivo NOVO anexado, faz o upload para o Supabase
             if (selectedFile) {
                 await ContractService.uploadDocument(
                     savedContract.key,
@@ -165,7 +162,6 @@ export const ContractModal: React.FC<ContractModalProps> = ({
                 centered
             >
                 <SplitLayout>
-                    {/* PAINEL ESQUERDO: Renderização do PDF ou Botão de Upload */}
                     <LeftPane>
                         {pdfPreviewUrl ? (
                             <>
@@ -184,6 +180,7 @@ export const ContractModal: React.FC<ContractModalProps> = ({
                                         beforeUpload={() => false}
                                         showUploadList={false}
                                         onChange={handleFileChange}
+                                        accept=".pdf"
                                     >
                                         <Button
                                             icon={<UploadOutlined />}
@@ -196,7 +193,7 @@ export const ContractModal: React.FC<ContractModalProps> = ({
                             </>
                         ) : (
                             <Upload.Dragger
-                                beforeUpload={() => false} // Impede o envio automático do Antd
+                                beforeUpload={() => false}
                                 showUploadList={false}
                                 onChange={handleFileChange}
                                 accept=".pdf"
@@ -226,15 +223,12 @@ export const ContractModal: React.FC<ContractModalProps> = ({
                         )}
                     </LeftPane>
 
-                    {/* PAINEL DIREITO: Formulário */}
                     <RightPane>
                         <Form
                             form={form}
                             layout="vertical"
                             onFinish={handleSubmit}
                         >
-                            {/* --- COMBOS DE SELEÇÃO E CRIAÇÃO RÁPIDA --- */}
-
                             <DropdownRow>
                                 <Form.Item
                                     name="tenant_key"
@@ -290,7 +284,6 @@ export const ContractModal: React.FC<ContractModalProps> = ({
                                 />
                             </DropdownRow>
 
-                            {/* --- INFORMAÇÕES FINANCEIRAS --- */}
                             <div style={{ display: 'flex', gap: '16px' }}>
                                 <Form.Item
                                     label="Valor do Aluguel (R$)"
@@ -302,6 +295,8 @@ export const ContractModal: React.FC<ContractModalProps> = ({
                                         min={0}
                                         precision={2}
                                         style={{ width: '100%' }}
+                                        decimalSeparator=","
+                                        parser={parseCurrencyInput}
                                     />
                                 </Form.Item>
                                 <Form.Item
@@ -360,8 +355,6 @@ export const ContractModal: React.FC<ContractModalProps> = ({
                                 </Form.Item>
                             </div>
 
-                            {/* --- GARANTIAS ESPECÍFICAS (Condicionais com base no form, para o usuário preencher apenas o que faz sentido) --- */}
-
                             <Form.Item
                                 noStyle
                                 dependencies={['guarantee_type']}
@@ -381,6 +374,8 @@ export const ContractModal: React.FC<ContractModalProps> = ({
                                                     min={0}
                                                     precision={2}
                                                     style={{ width: '100%' }}
+                                                    decimalSeparator=","
+                                                    parser={parseCurrencyInput}
                                                 />
                                             </Form.Item>
                                         );
@@ -449,7 +444,6 @@ export const ContractModal: React.FC<ContractModalProps> = ({
                 </SplitLayout>
             </WideModal>
 
-            {/* MONTAGEM DOS SUB-MODAIS INVISÍVEIS (Aguardando acionamento) */}
             <TenantModal
                 isOpen={modals.tenant}
                 onClose={() => toggleModal('tenant', false)}

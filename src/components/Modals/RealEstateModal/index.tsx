@@ -2,6 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { Form, Input, InputNumber, message } from 'antd';
 import { RealEstateService } from 'services/real_estate_service';
 import { IRealEstatePayload, IRealEstate } from 'interfaces/real_estate';
+import {
+    formatPercentageInput,
+    parsePercentageInput,
+    fromApiPercentage,
+    toApiPercentage
+} from 'utils/formatters';
 import { StyledModal } from '../sharedStyles';
 
 interface RealEstateModalProps {
@@ -26,7 +32,7 @@ export const RealEstateModal: React.FC<RealEstateModalProps> = ({
                 form.setFieldsValue({
                     name: initialData.name,
                     cnpj: initialData.cnpj,
-                    commission: initialData.commission,
+                    commission: fromApiPercentage(initialData.commission),
                     address: initialData.address,
                     phone: initialData.phone
                 });
@@ -39,13 +45,19 @@ export const RealEstateModal: React.FC<RealEstateModalProps> = ({
     const handleSubmit = async (values: IRealEstatePayload) => {
         setLoading(true);
         try {
+            const payloadToSend = {
+                ...values,
+                commission: toApiPercentage(values.commission)
+            };
+
             if (initialData) {
-                await RealEstateService.update(initialData.key, values);
+                await RealEstateService.update(initialData.key, payloadToSend);
                 message.success('Imobiliária atualizada com sucesso!');
             } else {
-                await RealEstateService.create(values);
+                await RealEstateService.create(payloadToSend);
                 message.success('Imobiliária cadastrada com sucesso!');
             }
+
             form.resetFields();
             if (onSuccess) onSuccess();
             onClose();
@@ -103,12 +115,15 @@ export const RealEstateModal: React.FC<RealEstateModalProps> = ({
                         { required: true, message: 'A taxa é obrigatória' }
                     ]}
                 >
-                    <InputNumber
+                    <InputNumber<number>
                         min={0}
                         max={100}
-                        step={0.1}
+                        precision={2}
                         style={{ width: '100%' }}
                         placeholder="Ex: 10"
+                        decimalSeparator=","
+                        formatter={formatPercentageInput}
+                        parser={parsePercentageInput}
                     />
                 </Form.Item>
 

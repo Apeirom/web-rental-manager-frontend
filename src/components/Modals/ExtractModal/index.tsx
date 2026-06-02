@@ -3,6 +3,7 @@ import { Form, InputNumber, Button, Upload, message } from 'antd';
 import { UploadOutlined, FilePdfOutlined } from '@ant-design/icons';
 import { IExtract, IExtractPayload } from 'interfaces/extract';
 import { ExtractService } from 'services/extract_service';
+import { parseCurrencyInput } from 'utils/formatters';
 import { ContractDropdown } from '../../Dropdowns/ContractDropdown';
 
 import { WideModal, SplitLayout, LeftPane, RightPane } from './styles';
@@ -255,6 +256,8 @@ export const ExtractModal: React.FC<ExtractModalProps> = ({
                                     min={0}
                                     precision={2}
                                     style={{ width: '100%' }}
+                                    decimalSeparator=","
+                                    parser={parseCurrencyInput}
                                 />
                             </Form.Item>
                             <Form.Item
@@ -266,6 +269,8 @@ export const ExtractModal: React.FC<ExtractModalProps> = ({
                                     min={0}
                                     precision={2}
                                     style={{ width: '100%' }}
+                                    decimalSeparator=","
+                                    parser={parseCurrencyInput}
                                 />
                             </Form.Item>
                         </div>
@@ -280,6 +285,8 @@ export const ExtractModal: React.FC<ExtractModalProps> = ({
                                     min={0}
                                     precision={2}
                                     style={{ width: '100%' }}
+                                    decimalSeparator=","
+                                    parser={parseCurrencyInput}
                                 />
                             </Form.Item>
                             <Form.Item
@@ -291,6 +298,8 @@ export const ExtractModal: React.FC<ExtractModalProps> = ({
                                     min={0}
                                     precision={2}
                                     style={{ width: '100%' }}
+                                    decimalSeparator=","
+                                    parser={parseCurrencyInput}
                                 />
                             </Form.Item>
                         </div>
@@ -317,6 +326,8 @@ export const ExtractModal: React.FC<ExtractModalProps> = ({
                                     min={0}
                                     precision={2}
                                     style={{ width: '100%' }}
+                                    decimalSeparator=","
+                                    parser={parseCurrencyInput}
                                 />
                             </Form.Item>
                             <Form.Item
@@ -328,6 +339,8 @@ export const ExtractModal: React.FC<ExtractModalProps> = ({
                                     min={0}
                                     precision={2}
                                     style={{ width: '100%' }}
+                                    decimalSeparator=","
+                                    parser={parseCurrencyInput}
                                 />
                             </Form.Item>
                         </div>
@@ -342,6 +355,8 @@ export const ExtractModal: React.FC<ExtractModalProps> = ({
                                     min={0}
                                     precision={2}
                                     style={{ width: '100%' }}
+                                    decimalSeparator=","
+                                    parser={parseCurrencyInput}
                                 />
                             </Form.Item>
                             <Form.Item
@@ -350,9 +365,10 @@ export const ExtractModal: React.FC<ExtractModalProps> = ({
                                 style={{ flex: 1 }}
                             >
                                 <InputNumber
-                                    min={0}
                                     precision={2}
                                     style={{ width: '100%' }}
+                                    decimalSeparator=","
+                                    parser={parseCurrencyInput}
                                 />
                             </Form.Item>
                         </div>
@@ -365,6 +381,8 @@ export const ExtractModal: React.FC<ExtractModalProps> = ({
                                 min={0}
                                 precision={2}
                                 style={{ width: '50%' }}
+                                decimalSeparator=","
+                                parser={parseCurrencyInput}
                             />
                         </Form.Item>
                     </Form>
