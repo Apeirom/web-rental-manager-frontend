@@ -22,31 +22,33 @@ export const RealEstateDropdown: React.FC<RealEstateDropdownProps> = ({
     const [realEstates, setRealEstates] = useState<IRealEstate[]>([]);
     const [loading, setLoading] = useState(false);
 
+    const fetchRealEstates = async (search?: string) => {
+        setLoading(true);
+        try {
+            const response = await RealEstateService.getPaginate({
+                skip: 0,
+                limit: 30,
+                search_term: search || undefined
+            });
+            setRealEstates(response.data);
+        } catch (error) {
+            console.error('Erro ao carregar imobiliárias', error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
     useEffect(() => {
-        const fetchData = async () => {
-            setLoading(true);
-            try {
-                const data = await RealEstateService.getAll();
-                setRealEstates(data);
-            } catch (error) {
-                console.error('Erro ao carregar imobiliárias', error);
-            } finally {
-                setLoading(false);
-            }
-        };
-        fetchData();
+        fetchRealEstates();
     }, []);
 
     return (
         <SelectContainer>
             {label && <Label>{label}</Label>}
             <Select
-                showSearch={{
-                    filterOption: (input, option) =>
-                        (
-                            option?.label?.toString().toLowerCase() ?? ''
-                        ).includes(input.toLowerCase())
-                }}
+                showSearch
+                filterOption={false}
+                onSearch={(val) => fetchRealEstates(val)}
                 value={value || undefined}
                 placeholder={placeholder}
                 disabled={disabled || loading}

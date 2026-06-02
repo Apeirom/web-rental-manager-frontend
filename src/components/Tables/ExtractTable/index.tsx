@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Table, Button, Switch, Input, Space, Tooltip, Tag } from 'antd';
+import { Table, Button, Switch, Input, Space, Tooltip } from 'antd';
 import {
     PlusOutlined,
     EditOutlined,
@@ -11,35 +11,68 @@ import { ExtractService } from 'services/extract_service';
 import { ExtractModal } from 'components/Modals/ExtractModal';
 import { TableContainer, Toolbar, FiltersArea } from '../sharedStyles';
 
+const formatBRL = (val: number) =>
+    new Intl.NumberFormat('pt-BR', {
+        style: 'currency',
+        currency: 'BRL'
+    }).format(val);
+
 export const ExtractTable: React.FC = () => {
     const [extracts, setExtracts] = useState<IExtract[]>([]);
+    const [total, setTotal] = useState(0);
     const [loading, setLoading] = useState(false);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingExtract, setEditingExtract] = useState<IExtract | null>(null);
     const [onlyActiveContracts, setOnlyActiveContracts] = useState(true);
     const [searchText, setSearchText] = useState('');
 
+    const [tableParams, setTableParams] = useState({
+        current: 1,
+        pageSize: 10
+    });
+
+    const handleCreateNew = () => {
+        setEditingExtract(null);
+        setIsModalOpen(true);
+    };
+
+    const handleEdit = (record: IExtract) => {
+        setEditingExtract(record);
+        setIsModalOpen(true);
+    };
+
     const fetchExtracts = useCallback(async () => {
         setLoading(true);
         try {
-            const data = await ExtractService.getAll();
-            setExtracts(data);
+            const skip = (tableParams.current - 1) * tableParams.pageSize;
+            const response = await ExtractService.getPaginate({
+                skip,
+                limit: tableParams.pageSize,
+                search_term: searchText || undefined,
+                only_active_contracts: onlyActiveContracts
+            });
+            setExtracts(response.data);
+            setTotal(response.total);
         } catch (error) {
             console.error(error);
         } finally {
             setLoading(false);
         }
-    }, []);
+    }, [onlyActiveContracts, searchText, tableParams]);
 
     useEffect(() => {
-        fetchExtracts();
+        const timeoutId = setTimeout(() => {
+            fetchExtracts();
+        }, 500);
+        return () => clearTimeout(timeoutId);
     }, [fetchExtracts]);
 
-    const formatBRL = (val: number) =>
-        new Intl.NumberFormat('pt-BR', {
-            style: 'currency',
-            currency: 'BRL'
-        }).format(val);
+    const handleTableChange = (pagination: any) => {
+        setTableParams({
+            current: pagination.current,
+            pageSize: pagination.pageSize
+        });
+    };
 
     const columns = [
         {
@@ -107,10 +140,7 @@ export const ExtractTable: React.FC = () => {
                     <Button
                         type="text"
                         icon={<EditOutlined style={{ color: '#0e90e2' }} />}
-                        onClick={() => {
-                            setEditingExtract(record);
-                            setIsModalOpen(true);
-                        }}
+                        onClick={() => handleEdit(record)}
                     />
                 </Tooltip>
             )
@@ -124,13 +154,22 @@ export const ExtractTable: React.FC = () => {
                     <Input.Search
                         placeholder="Buscar por proprietário ou imóvel..."
                         allowClear
-                        onSearch={setSearchText}
+                        onChange={(e) => {
+                            setSearchText(e.target.value);
+                            setTableParams((prev) => ({ ...prev, current: 1 }));
+                        }}
                         style={{ width: 280 }}
                     />
                     <Space>
                         <Switch
                             checked={onlyActiveContracts}
-                            onChange={setOnlyActiveContracts}
+                            onChange={(checked) => {
+                                setOnlyActiveContracts(checked);
+                                setTableParams((prev) => ({
+                                    ...prev,
+                                    current: 1
+                                }));
+                            }}
                         />
                         <span style={{ fontSize: '14px', color: '#495057' }}>
                             Apenas Contratos Ativos
@@ -148,10 +187,7 @@ export const ExtractTable: React.FC = () => {
                     <Button
                         type="primary"
                         icon={<PlusOutlined />}
-                        onClick={() => {
-                            setEditingExtract(null);
-                            setIsModalOpen(true);
-                        }}
+                        onClick={handleCreateNew}
                     >
                         Novo Extrato
                     </Button>
@@ -162,6 +198,13 @@ export const ExtractTable: React.FC = () => {
                 dataSource={extracts}
                 rowKey="key"
                 loading={loading}
+                onChange={handleTableChange}
+                pagination={{
+                    current: tableParams.current,
+                    pageSize: tableParams.pageSize,
+                    total,
+                    showSizeChanger: false
+                }}
             />
             <ExtractModal
                 isOpen={isModalOpen}

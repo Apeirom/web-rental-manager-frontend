@@ -22,31 +22,33 @@ export const PropertyDropdown: React.FC<PropertyDropdownProps> = ({
     const [properties, setProperties] = useState<IProperty[]>([]);
     const [loading, setLoading] = useState(false);
 
+    const fetchProperties = async (search?: string) => {
+        setLoading(true);
+        try {
+            const response = await PropertyService.getPaginate({
+                skip: 0,
+                limit: 30,
+                search_term: search || undefined
+            });
+            setProperties(response.data);
+        } catch (error) {
+            console.error('Erro ao carregar imóveis', error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
     useEffect(() => {
-        const fetchData = async () => {
-            setLoading(true);
-            try {
-                const data = await PropertyService.getAll();
-                setProperties(data);
-            } catch (error) {
-                console.error('Erro ao carregar imóveis', error);
-            } finally {
-                setLoading(false);
-            }
-        };
-        fetchData();
+        fetchProperties();
     }, []);
 
     return (
         <SelectContainer>
             {label && <Label>{label}</Label>}
             <Select
-                showSearch={{
-                    filterOption: (input, option) =>
-                        (
-                            option?.label?.toString().toLowerCase() ?? ''
-                        ).includes(input.toLowerCase())
-                }}
+                showSearch
+                filterOption={false}
+                onSearch={(val) => fetchProperties(val)}
                 value={value || undefined}
                 placeholder={placeholder}
                 disabled={disabled || loading}

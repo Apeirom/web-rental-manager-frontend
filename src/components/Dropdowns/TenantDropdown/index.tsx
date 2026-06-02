@@ -22,18 +22,23 @@ export const TenantDropdown: React.FC<TenantDropdownProps> = ({
     const [tenants, setTenants] = useState<ITenant[]>([]);
     const [loading, setLoading] = useState(false);
 
+    const fetchTenants = async (search?: string) => {
+        setLoading(true);
+        try {
+            const response = await TenantService.getPaginate({
+                skip: 0,
+                limit: 30,
+                search_term: search || undefined
+            });
+            setTenants(response.data);
+        } catch (error) {
+            console.error('Erro ao carregar inquilinos', error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
     useEffect(() => {
-        const fetchTenants = async () => {
-            setLoading(true);
-            try {
-                const data = await TenantService.getAll();
-                setTenants(data);
-            } catch (error) {
-                console.error('Erro ao carregar inquilinos', error);
-            } finally {
-                setLoading(false);
-            }
-        };
         fetchTenants();
     }, []);
 
@@ -41,12 +46,9 @@ export const TenantDropdown: React.FC<TenantDropdownProps> = ({
         <SelectContainer>
             {label && <Label>{label}</Label>}
             <Select
-                showSearch={{
-                    filterOption: (input, option) =>
-                        (
-                            option?.label?.toString().toLowerCase() ?? ''
-                        ).includes(input.toLowerCase())
-                }}
+                showSearch
+                filterOption={false}
+                onSearch={(val) => fetchTenants(val)}
                 value={value || undefined}
                 placeholder={placeholder}
                 disabled={disabled || loading}

@@ -1,11 +1,23 @@
 import { IExtract, IExtractPayload } from 'interfaces/extract';
+import { IPaginatedResponse } from 'interfaces/pagination';
 import { api } from './api';
 
 const ROUTE = '/extracts';
 
+export interface GetExtractsParams {
+    skip?: number;
+    limit?: number;
+    search_term?: string;
+    only_active_contracts?: boolean;
+}
+
 export const ExtractService = {
-    getAll: async (): Promise<IExtract[]> => {
-        const { data } = await api.get<IExtract[]>(ROUTE);
+    getPaginate: async (
+        params: GetExtractsParams
+    ): Promise<IPaginatedResponse<IExtract>> => {
+        const { data } = await api.get<IPaginatedResponse<IExtract>>(ROUTE, {
+            params
+        });
         return data;
     },
     getByKey: async (key: string): Promise<IExtract> => {
@@ -26,7 +38,6 @@ export const ExtractService = {
     delete: async (key: string): Promise<void> => {
         await api.delete(`${ROUTE}/${key}`);
     },
-    // Função especial para upload do comprovante de repasse
     uploadReceipt: async (key: string, file: File): Promise<IExtract> => {
         const formData = new FormData();
         formData.append('file', file);

@@ -22,24 +22,27 @@ export const ContractDropdown: React.FC<ContractDropdownProps> = ({
     const [contracts, setContracts] = useState<IContract[]>([]);
     const [loading, setLoading] = useState(false);
 
+    const fetchContracts = async (search?: string) => {
+        setLoading(true);
+        try {
+            const response = await ContractService.getPaginate({
+                skip: 0,
+                limit: 30,
+                status: 'active',
+                search_term: search || undefined
+            });
+            setContracts(response.data);
+        } catch (error) {
+            console.error('Erro ao carregar contratos', error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
     useEffect(() => {
-        const fetchContracts = async () => {
-            setLoading(true);
-            try {
-                // Aqui estamos buscando todos, mas em um cenário com milhares de contratos,
-                // poderíamos usar a rota paginada com busca dinâmica que criamos no backend!
-                const data = await ContractService.getAll();
-                setContracts(data);
-            } catch (error) {
-                console.error('Erro ao carregar contratos', error);
-            } finally {
-                setLoading(false);
-            }
-        };
         fetchContracts();
     }, []);
 
-    // Função para montar um texto bem descritivo para o usuário achar o contrato
     const formatContractLabel = (contract: IContract) => {
         const tenantName = contract.tenant.name;
         const propertyName = contract.property.property_name;
@@ -54,12 +57,9 @@ export const ContractDropdown: React.FC<ContractDropdownProps> = ({
         <SelectContainer>
             {label && <Label>{label}</Label>}
             <Select
-                showSearch={{
-                    filterOption: (input, option) =>
-                        (
-                            option?.label?.toString().toLowerCase() ?? ''
-                        ).includes(input.toLowerCase())
-                }}
+                showSearch
+                filterOption={false}
+                onSearch={(val) => fetchContracts(val)}
                 value={value || undefined}
                 placeholder={placeholder}
                 disabled={disabled || loading}
