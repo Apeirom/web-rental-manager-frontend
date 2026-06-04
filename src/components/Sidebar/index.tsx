@@ -6,7 +6,8 @@ import {
     LineChartOutlined,
     FilePdfOutlined,
     LogoutOutlined,
-    UserOutlined
+    UserOutlined,
+    SettingOutlined
 } from '@ant-design/icons';
 import { IUser } from 'interfaces/user';
 import {
@@ -44,6 +45,12 @@ export const Sidebar: React.FC<SidebarProps> = ({ user, onLogout }) => {
             icon: <FilePdfOutlined />,
             label: 'Relatórios',
             comingSoon: true
+        },
+        {
+            key: '/profile',
+            icon: <SettingOutlined />,
+            label: 'Meu Perfil',
+            comingSoon: false
         }
     ];
 

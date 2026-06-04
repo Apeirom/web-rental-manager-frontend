@@ -1,14 +1,14 @@
 import { NextPage } from 'next';
 import Head from 'next/head';
-import ControlTemplate from 'template/Control';
+import ProfilePage from 'template/Perfil';
 
 const ControlePage: NextPage = () => {
     return (
         <>
             <Head>
-                <title>Controle | Rental Manager</title>
+                <title>Profile | Rental Manager</title>
             </Head>
-            <ControlTemplate />
+            <ProfilePage />
         </>
     );
 };
