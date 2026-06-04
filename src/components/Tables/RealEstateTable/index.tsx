@@ -77,7 +77,7 @@ export const RealEstateTable: React.FC = () => {
         },
         { title: 'CNPJ', dataIndex: 'cnpj', key: 'cnpj' },
         {
-            title: 'Taxa (%)',
+            title: 'Taxa adm(%)',
             dataIndex: 'commission',
             key: 'commission',
             render: (val: number) => `${fromApiPercentage(val)}%`

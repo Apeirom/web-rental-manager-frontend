@@ -98,7 +98,7 @@ export const ExtractTable: React.FC = () => {
                 }`
         },
         {
-            title: 'Comissão (Adm)',
+            title: 'Taxa Adm',
             dataIndex: 'administration_fee',
             key: 'admin',
             render: (val: number) => (
@@ -120,7 +120,7 @@ export const ExtractTable: React.FC = () => {
             align: 'center' as const,
             render: (path: string) =>
                 path ? (
-                    <Tooltip title="Ver Comprovante">
+                    <Tooltip title="Ver Extrato">
                         <a href={path} target="_blank" rel="noreferrer">
                             <FilePdfOutlined
                                 style={{ fontSize: '18px', color: '#fa5252' }}
