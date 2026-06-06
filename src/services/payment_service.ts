@@ -1,15 +1,13 @@
-import { IPayment, IPaymentPayload } from 'interfaces/payment';
+import {
+    IPayment,
+    IPaymentCreatePayload,
+    IPaymentUpdatePayload,
+    GetPaymentsParams
+} from 'interfaces/payment';
 import { IPaginatedResponse } from 'interfaces/pagination';
 import { api } from './api';
 
 const ROUTE = '/payments';
-
-export interface GetPaymentsParams {
-    skip?: number;
-    limit?: number;
-    search_term?: string;
-    only_active_contracts?: boolean;
-}
 
 export const PaymentService = {
     getPaginate: async (
@@ -20,21 +18,25 @@ export const PaymentService = {
         });
         return data;
     },
+
     getByKey: async (key: string): Promise<IPayment> => {
         const { data } = await api.get<IPayment>(`${ROUTE}/${key}`);
         return data;
     },
-    create: async (payload: IPaymentPayload): Promise<IPayment> => {
+
+    create: async (payload: IPaymentCreatePayload): Promise<IPayment> => {
         const { data } = await api.post<IPayment>(ROUTE, payload);
         return data;
     },
+
     update: async (
         key: string,
-        payload: IPaymentPayload
+        payload: IPaymentUpdatePayload
     ): Promise<IPayment> => {
         const { data } = await api.put<IPayment>(`${ROUTE}/${key}`, payload);
         return data;
     },
+
     delete: async (key: string): Promise<void> => {
         await api.delete(`${ROUTE}/${key}`);
     }

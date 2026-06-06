@@ -1,18 +1,33 @@
-import { IContract } from './contract';
-
 export interface IPayment {
     key: string;
-    payment_date: string; // O backend envia como string ISO
-    month_ref: number;
-    year_ref: number;
-    file_path?: string | null;
-    contract: IContract;
+    payment_date: string;
+    amount: number;
+    status: 'linked' | 'unlinked';
+    extract_key?: string | null;
 }
 
-export interface IPaymentPayload {
+export interface IPaymentCreatePayload {
     payment_date: string;
-    month_ref: number;
-    year_ref: number;
-    file_path?: string | null;
-    contract_key: string;
+    amount: number;
+}
+
+export interface IPaymentUpdatePayload {
+    payment_date: string;
+    amount: number;
+    extract_key?: string | null;
+}
+
+export interface IPaymentReconciliation {
+    status: 'pending' | 'success' | 'alreadyLinked';
+    message: string;
+    candidates?: IPayment[] | null;
+}
+
+export interface GetPaymentsParams {
+    skip?: number;
+    limit?: number;
+    amount?: number;
+    start_date?: string;
+    end_date?: string;
+    is_linked?: boolean;
 }

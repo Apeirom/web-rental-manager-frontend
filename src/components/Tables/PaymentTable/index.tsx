@@ -1,24 +1,34 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Table, Button, Switch, Input, Space, Tooltip, Tag } from 'antd';
+import { Table, Button, Space, Tooltip, Tag } from 'antd';
+import type { TablePaginationConfig } from 'antd';
+import type { ColumnsType } from 'antd/es/table';
 import {
     PlusOutlined,
-    EditOutlined,
     ReloadOutlined,
-    CalendarOutlined
+    CheckCircleOutlined,
+    ClockCircleOutlined
 } from '@ant-design/icons';
 import { IPayment } from 'interfaces/payment';
 import { PaymentService } from 'services/payment_service';
 import { PaymentModal } from 'components/Modals/PaymentModal';
 import { TableContainer, Toolbar, FiltersArea } from '../sharedStyles';
+import {
+    FilterInputNumber,
+    FilterRangePicker,
+    FilterSelect,
+    StyledEditIcon
+} from './styles';
 
 export const PaymentTable: React.FC = () => {
     const [payments, setPayments] = useState<IPayment[]>([]);
-    const [total, setTotal] = useState(0);
-    const [loading, setLoading] = useState(false);
-    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [total, setTotal] = useState<number>(0);
+    const [loading, setLoading] = useState<boolean>(false);
+    const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
     const [editingPayment, setEditingPayment] = useState<IPayment | null>(null);
-    const [onlyActiveContracts, setOnlyActiveContracts] = useState(true);
-    const [searchText, setSearchText] = useState('');
+
+    const [amountFilter, setAmountFilter] = useState<number | null>(null);
+    const [dateRange, setDateRange] = useState<[string, string] | null>(null);
+    const [statusFilter, setStatusFilter] = useState<string | null>(null);
 
     const [tableParams, setTableParams] = useState({
         current: 1,
@@ -29,11 +39,23 @@ export const PaymentTable: React.FC = () => {
         setLoading(true);
         try {
             const skip = (tableParams.current - 1) * tableParams.pageSize;
+
+            const startDate =
+                dateRange && dateRange[0] !== '' ? dateRange[0] : undefined;
+            const endDate =
+                dateRange && dateRange[1] !== '' ? dateRange[1] : undefined;
+
+            let isLinkedParam: boolean | undefined;
+            if (statusFilter === 'linked') isLinkedParam = true;
+            if (statusFilter === 'unlinked') isLinkedParam = false;
+
             const response = await PaymentService.getPaginate({
                 skip,
                 limit: tableParams.pageSize,
-                search_term: searchText || undefined,
-                only_active_contracts: onlyActiveContracts
+                amount: amountFilter || undefined,
+                start_date: startDate,
+                end_date: endDate,
+                is_linked: isLinkedParam
             });
             setPayments(response.data);
             setTotal(response.total);
@@ -42,7 +64,7 @@ export const PaymentTable: React.FC = () => {
         } finally {
             setLoading(false);
         }
-    }, [onlyActiveContracts, searchText, tableParams]);
+    }, [tableParams, dateRange, statusFilter, amountFilter]);
 
     useEffect(() => {
         const timeoutId = setTimeout(() => {
@@ -51,10 +73,10 @@ export const PaymentTable: React.FC = () => {
         return () => clearTimeout(timeoutId);
     }, [fetchPayments]);
 
-    const handleTableChange = (pagination: any) => {
+    const handleTableChange = (pagination: TablePaginationConfig) => {
         setTableParams({
-            current: pagination.current,
-            pageSize: pagination.pageSize
+            current: pagination.current || 1,
+            pageSize: pagination.pageSize || 10
         });
     };
 
@@ -68,39 +90,17 @@ export const PaymentTable: React.FC = () => {
         setIsModalOpen(true);
     };
 
-    const columns = [
+    const columns: ColumnsType<IPayment> = [
         {
-            title: 'Inquilino',
-            dataIndex: ['contract', 'tenant', 'name'],
-            key: 'tenant',
-            sorter: (a: IPayment, b: IPayment) =>
-                a.contract.tenant.name.localeCompare(b.contract.tenant.name)
-        },
-        {
-            title: 'Imóvel',
-            key: 'property',
-            render: (_: any, record: IPayment) =>
-                record.contract.property.property_name
-        },
-        {
-            title: 'Ref.',
-            key: 'reference',
-            render: (_: any, record: IPayment) => (
-                <Tag icon={<CalendarOutlined />}>
-                    {String(record.month_ref).padStart(2, '0')}/
-                    {record.year_ref}
-                </Tag>
-            )
-        },
-        {
-            title: 'Data Pagto',
+            title: 'Data do Pagamento',
             dataIndex: 'payment_date',
             key: 'payment_date',
-            render: (date: string) => new Date(date).toLocaleDateString('pt-BR')
+            render: (date: string) =>
+                new Date(`${date}T12:00:00Z`).toLocaleDateString('pt-BR')
         },
         {
-            title: 'Valor Aluguel',
-            dataIndex: ['contract', 'rent_amount'],
+            title: 'Valor Recebido',
+            dataIndex: 'amount',
             key: 'amount',
             render: (val: number) =>
                 new Intl.NumberFormat('pt-BR', {
@@ -109,14 +109,33 @@ export const PaymentTable: React.FC = () => {
                 }).format(val)
         },
         {
+            title: 'Status',
+            dataIndex: 'status',
+            key: 'status',
+            render: (status: string) => (
+                <Tag
+                    color={status === 'linked' ? 'success' : 'warning'}
+                    icon={
+                        status === 'linked' ? (
+                            <CheckCircleOutlined />
+                        ) : (
+                            <ClockCircleOutlined />
+                        )
+                    }
+                >
+                    {status === 'linked' ? 'Conciliado' : 'Pendente'}
+                </Tag>
+            )
+        },
+        {
             title: 'Ações',
             key: 'actions',
-            align: 'right' as const,
-            render: (_: any, record: IPayment) => (
+            align: 'right',
+            render: (_, record: IPayment) => (
                 <Tooltip title="Editar Pagamento">
                     <Button
                         type="text"
-                        icon={<EditOutlined style={{ color: '#0e90e2' }} />}
+                        icon={<StyledEditIcon />}
                         onClick={() => handleEdit(record)}
                     />
                 </Tooltip>
@@ -128,29 +147,57 @@ export const PaymentTable: React.FC = () => {
         <TableContainer>
             <Toolbar>
                 <FiltersArea>
-                    <Input.Search
-                        placeholder="Buscar inquilino ou imóvel..."
-                        allowClear
-                        onChange={(e) => {
-                            setSearchText(e.target.value);
-                            setTableParams((prev) => ({ ...prev, current: 1 }));
-                        }}
-                        style={{ width: 280 }}
-                    />
-                    <Space>
-                        <Switch
-                            checked={onlyActiveContracts}
-                            onChange={(checked) => {
-                                setOnlyActiveContracts(checked);
+                    <Space size="middle" wrap>
+                        <FilterInputNumber
+                            placeholder="Buscar por Valor (R$)"
+                            onChange={(val) => {
+                                setAmountFilter(
+                                    val !== null ? Number(val) : null
+                                );
+                                setTableParams((prev) => ({
+                                    ...prev,
+                                    current: 1
+                                }));
+                            }}
+                            decimalSeparator=","
+                        />
+                        <FilterRangePicker
+                            placeholder={['Data Inicial', 'Data Final']}
+                            format="YYYY-MM-DD"
+                            onChange={(_, dateStrings) => {
+                                if (
+                                    dateStrings &&
+                                    dateStrings[0] &&
+                                    dateStrings[1]
+                                ) {
+                                    setDateRange([
+                                        dateStrings[0],
+                                        dateStrings[1]
+                                    ]);
+                                } else {
+                                    setDateRange(null);
+                                }
                                 setTableParams((prev) => ({
                                     ...prev,
                                     current: 1
                                 }));
                             }}
                         />
-                        <span style={{ fontSize: '14px', color: '#495057' }}>
-                            Apenas Contratos Ativos
-                        </span>
+                        <FilterSelect
+                            placeholder="Filtrar por Status"
+                            allowClear
+                            onChange={(val) => {
+                                setStatusFilter(val as string | null);
+                                setTableParams((prev) => ({
+                                    ...prev,
+                                    current: 1
+                                }));
+                            }}
+                            options={[
+                                { value: 'unlinked', label: 'Pendentes' },
+                                { value: 'linked', label: 'Conciliados' }
+                            ]}
+                        />
                     </Space>
                 </FiltersArea>
                 <Space>
@@ -166,7 +213,7 @@ export const PaymentTable: React.FC = () => {
                         icon={<PlusOutlined />}
                         onClick={handleCreateNew}
                     >
-                        Novo Pagamento
+                        Novo Recebimento
                     </Button>
                 </Space>
             </Toolbar>

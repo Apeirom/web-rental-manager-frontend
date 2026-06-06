@@ -48,7 +48,6 @@ export const LoginTemplate: React.FC = () => {
             router.push('/controle');
         } catch (error) {
             message.error('E-mail ou senha incorretos. Tente novamente.');
-            console.error('Erro no login:', error);
         } finally {
             setLoading(false);
         }

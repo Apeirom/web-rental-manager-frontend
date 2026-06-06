@@ -1,14 +1,27 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Table, Button, Switch, Input, Space, Tooltip } from 'antd';
+import {
+    Table,
+    Button,
+    Switch,
+    Input,
+    Space,
+    Tooltip,
+    Select,
+    Tag
+} from 'antd';
 import {
     PlusOutlined,
     EditOutlined,
     ReloadOutlined,
-    FilePdfOutlined
+    FilePdfOutlined,
+    ApiOutlined,
+    CheckCircleOutlined,
+    ClockCircleOutlined
 } from '@ant-design/icons';
 import { IExtract } from 'interfaces/extract';
 import { ExtractService } from 'services/extract_service';
 import { ExtractModal } from 'components/Modals/ExtractModal';
+import { ReconciliationModal } from 'components/Modals/ReconciliationModal';
 import { TableContainer, Toolbar, FiltersArea } from '../sharedStyles';
 
 const formatBRL = (val: number) =>
@@ -21,10 +34,21 @@ export const ExtractTable: React.FC = () => {
     const [extracts, setExtracts] = useState<IExtract[]>([]);
     const [total, setTotal] = useState(0);
     const [loading, setLoading] = useState(false);
+
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingExtract, setEditingExtract] = useState<IExtract | null>(null);
+
+    const [isReconcileModalOpen, setIsReconcileModalOpen] = useState(false);
+    const [reconcilingExtract, setReconcilingExtract] =
+        useState<IExtract | null>(null);
+
     const [onlyActiveContracts, setOnlyActiveContracts] = useState(true);
     const [searchText, setSearchText] = useState('');
+
+    // NOVO ESTADO: Filtro de Conciliação
+    const [isReconciledFilter, setIsReconciledFilter] = useState<
+        boolean | null
+    >(null);
 
     const [tableParams, setTableParams] = useState({
         current: 1,
@@ -41,6 +65,11 @@ export const ExtractTable: React.FC = () => {
         setIsModalOpen(true);
     };
 
+    const handleReconcile = (record: IExtract) => {
+        setReconcilingExtract(record);
+        setIsReconcileModalOpen(true);
+    };
+
     const fetchExtracts = useCallback(async () => {
         setLoading(true);
         try {
@@ -49,7 +78,9 @@ export const ExtractTable: React.FC = () => {
                 skip,
                 limit: tableParams.pageSize,
                 search_term: searchText || undefined,
-                only_active_contracts: onlyActiveContracts
+                only_active_contracts: onlyActiveContracts,
+                is_reconciled:
+                    isReconciledFilter !== null ? isReconciledFilter : undefined
             });
             setExtracts(response.data);
             setTotal(response.total);
@@ -58,7 +89,7 @@ export const ExtractTable: React.FC = () => {
         } finally {
             setLoading(false);
         }
-    }, [onlyActiveContracts, searchText, tableParams]);
+    }, [onlyActiveContracts, searchText, isReconciledFilter, tableParams]);
 
     useEffect(() => {
         const timeoutId = setTimeout(() => {
@@ -106,12 +137,33 @@ export const ExtractTable: React.FC = () => {
             )
         },
         {
-            title: 'Líquido Repassado',
+            title: 'Líquido Esperado',
             dataIndex: 'net_transfer',
             key: 'net',
             render: (val: number) => (
                 <strong style={{ color: '#40c057' }}>{formatBRL(val)}</strong>
             )
+        },
+        {
+            title: 'Status',
+            key: 'status',
+            render: (_: any, record: IExtract) => {
+                const isReconciled = !!record.payment;
+                return (
+                    <Tag
+                        color={isReconciled ? 'success' : 'warning'}
+                        icon={
+                            isReconciled ? (
+                                <CheckCircleOutlined />
+                            ) : (
+                                <ClockCircleOutlined />
+                            )
+                        }
+                    >
+                        {isReconciled ? 'Conciliado' : 'Pendente'}
+                    </Tag>
+                );
+            }
         },
         {
             title: 'Doc',
@@ -135,15 +187,48 @@ export const ExtractTable: React.FC = () => {
             title: 'Ações',
             key: 'actions',
             align: 'right' as const,
-            render: (_: any, record: IExtract) => (
-                <Tooltip title="Editar Extrato">
-                    <Button
-                        type="text"
-                        icon={<EditOutlined style={{ color: '#0e90e2' }} />}
-                        onClick={() => handleEdit(record)}
-                    />
-                </Tooltip>
-            )
+            render: (_: any, record: IExtract) => {
+                const isReconciled = !!record.payment;
+
+                return (
+                    <Space>
+                        <Tooltip
+                            title={
+                                isReconciled
+                                    ? 'Ver Conciliação'
+                                    : 'Conciliar Pagamento Bancário'
+                            }
+                        >
+                            <Button
+                                type={isReconciled ? 'text' : 'primary'}
+                                ghost={isReconciled}
+                                size="large"
+                                icon={
+                                    <ApiOutlined
+                                        style={{
+                                            color: isReconciled
+                                                ? '#0e90e2'
+                                                : undefined
+                                        }}
+                                    />
+                                }
+                                onClick={() => handleReconcile(record)}
+                            />
+                        </Tooltip>
+                        <Tooltip title="Editar Extrato">
+                            <Button
+                                type="text"
+                                icon={
+                                    <EditOutlined
+                                        style={{ color: '#0e90e2' }}
+                                    />
+                                }
+                                onClick={() => handleEdit(record)}
+                            />
+                        </Tooltip>
+                    </Space>
+                );
+            }
         }
     ];
 
@@ -160,6 +245,24 @@ export const ExtractTable: React.FC = () => {
                         }}
                         style={{ width: 280 }}
                     />
+
+                    {/* NOVO FILTRO: Select de Conciliação */}
+                    <Select
+                        placeholder="Filtrar por Status"
+                        allowClear
+                        style={{ width: 180 }}
+                        onChange={(val) => {
+                            setIsReconciledFilter(
+                                val !== undefined ? val : null
+                            );
+                            setTableParams((prev) => ({ ...prev, current: 1 }));
+                        }}
+                        options={[
+                            { value: false, label: 'Pendentes' },
+                            { value: true, label: 'Conciliados' }
+                        ]}
+                    />
+
                     <Space>
                         <Switch
                             checked={onlyActiveContracts}
@@ -212,6 +315,18 @@ export const ExtractTable: React.FC = () => {
                 onSuccess={fetchExtracts}
                 initialData={editingExtract}
             />
+
+            {reconcilingExtract && (
+                <ReconciliationModal
+                    isOpen={isReconcileModalOpen}
+                    onClose={() => {
+                        setIsReconcileModalOpen(false);
+                        setReconcilingExtract(null);
+                    }}
+                    onSuccess={fetchExtracts}
+                    extract={reconcilingExtract}
+                />
+            )}
         </TableContainer>
     );
 };
