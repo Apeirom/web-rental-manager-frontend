@@ -1,5 +1,6 @@
 import { IExtract, IExtractPayload } from 'interfaces/extract';
 import { IPaginatedResponse } from 'interfaces/pagination';
+import { IPaymentReconciliation } from 'interfaces/payment';
 import { api } from './api';
 
 const ROUTE = '/extracts';
@@ -9,6 +10,7 @@ export interface GetExtractsParams {
     limit?: number;
     search_term?: string;
     only_active_contracts?: boolean;
+    is_reconciled?: boolean;
 }
 
 export const ExtractService = {
@@ -20,14 +22,17 @@ export const ExtractService = {
         });
         return data;
     },
+
     getByKey: async (key: string): Promise<IExtract> => {
         const { data } = await api.get<IExtract>(`${ROUTE}/${key}`);
         return data;
     },
+
     create: async (payload: IExtractPayload): Promise<IExtract> => {
         const { data } = await api.post<IExtract>(ROUTE, payload);
         return data;
     },
+
     update: async (
         key: string,
         payload: IExtractPayload
@@ -35,9 +40,20 @@ export const ExtractService = {
         const { data } = await api.put<IExtract>(`${ROUTE}/${key}`, payload);
         return data;
     },
+
     delete: async (key: string): Promise<void> => {
         await api.delete(`${ROUTE}/${key}`);
     },
+
+    getReconciliationCandidates: async (
+        key: string
+    ): Promise<IPaymentReconciliation> => {
+        const { data } = await api.get<IPaymentReconciliation>(
+            `${ROUTE}/${key}/reconcile`
+        );
+        return data;
+    },
+
     uploadReceipt: async (key: string, file: File): Promise<IExtract> => {
         const formData = new FormData();
         formData.append('file', file);

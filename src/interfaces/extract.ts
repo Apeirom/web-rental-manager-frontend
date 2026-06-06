@@ -1,4 +1,5 @@
 import { IContract } from './contract';
+import { IPayment } from './payment';
 
 export interface IExtract {
     key: string;
@@ -20,6 +21,7 @@ export interface IExtract {
 
     file_path?: string | null;
     contract: IContract;
+    payment: IPayment;
 }
 
 export interface IExtractPayload {

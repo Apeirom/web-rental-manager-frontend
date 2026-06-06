@@ -1,8 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { Form, Input, InputNumber, message } from 'antd';
 import { PaymentService } from 'services/payment_service';
-import { IPayment, IPaymentPayload } from 'interfaces/payment';
-import { ContractDropdown } from '../../Dropdowns/ContractDropdown';
+import { parseCurrencyInput } from 'utils/formatters';
+import {
+    IPayment,
+    IPaymentCreatePayload,
+    IPaymentUpdatePayload
+} from 'interfaces/payment';
 import { StyledModal } from '../sharedStyles';
 
 interface PaymentModalProps {
@@ -18,39 +22,48 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
     onSuccess,
     initialData
 }) => {
-    const [form] = Form.useForm<IPaymentPayload>();
+    const [form] = Form.useForm<any>();
     const [loading, setLoading] = useState(false);
 
     useEffect(() => {
-        if (isOpen && initialData) {
-            form.setFieldsValue({
-                contract_key: initialData.contract.key,
-                payment_date: initialData.payment_date,
-                month_ref: initialData.month_ref,
-                year_ref: initialData.year_ref,
-                file_path: initialData.file_path
-            });
-        } else if (isOpen) {
-            form.resetFields();
+        if (isOpen) {
+            if (initialData) {
+                form.setFieldsValue({
+                    payment_date: initialData.payment_date,
+                    amount: initialData.amount,
+                    status_enumerator: initialData.status
+                });
+            } else {
+                form.resetFields();
+            }
         }
     }, [isOpen, initialData, form]);
 
-    const handleSubmit = async (values: IPaymentPayload) => {
+    const handleSubmit = async (values: any) => {
         setLoading(true);
         try {
             if (initialData) {
-                await PaymentService.update(initialData.key, values);
+                const updatePayload: IPaymentUpdatePayload = {
+                    payment_date: values.payment_date,
+                    amount: values.amount
+                };
+                await PaymentService.update(initialData.key, updatePayload);
                 message.success('Pagamento atualizado com sucesso!');
             } else {
-                await PaymentService.create(values);
-                message.success('Pagamento registrado com sucesso!');
+                const createPayload: IPaymentCreatePayload = {
+                    payment_date: values.payment_date,
+                    amount: values.amount
+                };
+                await PaymentService.create(createPayload);
+                message.success(
+                    'Pagamento registrado e aguardando conciliação!'
+                );
             }
             form.resetFields();
             if (onSuccess) onSuccess();
             onClose();
         } catch (error) {
-            message.error('Erro ao registrar pagamento.');
-            console.error(error);
+            message.error('Erro ao salvar pagamento.');
         } finally {
             setLoading(false);
         }
@@ -58,7 +71,11 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
 
     return (
         <StyledModal
-            title={initialData ? 'Editar Pagamento' : 'Registrar Pagamento'}
+            title={
+                initialData
+                    ? 'Editar Recebimento'
+                    : 'Registrar Recebimento (Cego)'
+            }
             open={isOpen}
             onCancel={onClose}
             onOk={() => form.submit()}
@@ -69,52 +86,30 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
         >
             <Form form={form} layout="vertical" onFinish={handleSubmit}>
                 <Form.Item
-                    name="contract_key"
+                    label="Data do Recebimento"
+                    name="payment_date"
                     rules={[
-                        { required: true, message: 'Selecione o contrato' }
+                        { required: true, message: 'A data é obrigatória' }
                     ]}
                 >
-                    <ContractDropdown
-                        label="Contrato Vinculado"
-                        disabled={!!initialData}
-                    />
+                    <Input type="date" style={{ width: '100%' }} />
                 </Form.Item>
 
-                <div style={{ display: 'flex', gap: '16px' }}>
-                    <Form.Item
-                        label="Mês Referência"
-                        name="month_ref"
-                        rules={[{ required: true }]}
-                        style={{ flex: 1 }}
-                    >
-                        <InputNumber
-                            min={1}
-                            max={12}
-                            style={{ width: '100%' }}
-                            placeholder="Ex: 5"
-                        />
-                    </Form.Item>
-
-                    <Form.Item
-                        label="Ano Referência"
-                        name="year_ref"
-                        rules={[{ required: true }]}
-                        style={{ flex: 1 }}
-                    >
-                        <InputNumber
-                            min={2020}
-                            style={{ width: '100%' }}
-                            placeholder="Ex: 2026"
-                        />
-                    </Form.Item>
-                </div>
-
                 <Form.Item
-                    label="Data do Pagamento"
-                    name="payment_date"
-                    rules={[{ required: true }]}
+                    label="Valor Recebido (R$)"
+                    name="amount"
+                    rules={[
+                        { required: true, message: 'O valor é obrigatório' }
+                    ]}
                 >
-                    <Input type="date" style={{ width: '100%' }} />
+                    <InputNumber
+                        min={0.01}
+                        precision={2}
+                        decimalSeparator=","
+                        style={{ width: '100%' }}
+                        placeholder="Ex: 1500,00"
+                        parser={parseCurrencyInput}
+                    />
                 </Form.Item>
             </Form>
         </StyledModal>
