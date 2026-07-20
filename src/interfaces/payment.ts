@@ -3,7 +3,7 @@ export interface IPayment {
     payment_date: string;
     amount: number;
     status: 'linked' | 'unlinked';
-    extract_key?: string | null;
+    extract_batch_key?: string | null;
 }
 
 export interface IPaymentCreatePayload {
@@ -14,7 +14,7 @@ export interface IPaymentCreatePayload {
 export interface IPaymentUpdatePayload {
     payment_date: string;
     amount: number;
-    extract_key?: string | null;
+    extract_batch_key?: string | null;
 }
 
 export interface IPaymentReconciliation {

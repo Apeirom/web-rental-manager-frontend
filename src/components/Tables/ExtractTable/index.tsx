@@ -16,36 +16,50 @@ import {
     FilePdfOutlined,
     ApiOutlined,
     CheckCircleOutlined,
-    ClockCircleOutlined
+    ClockCircleOutlined,
+    FolderOpenOutlined
 } from '@ant-design/icons';
-import { IExtract } from 'interfaces/extract';
-import { ExtractService } from 'services/extract_service';
-import { ExtractModal } from 'components/Modals/ExtractModal';
+import type { TablePaginationConfig } from 'antd';
+
+// Imports atualizados para a arquitetura de Batch
+import { IExtractBatch, IExtract } from 'interfaces/extract';
+import { ExtractBatchService } from 'services/extract_service';
+import { ExtractBatchModal } from 'components/Modals/ExtractBatchModal';
 import { ReconciliationModal } from 'components/Modals/ReconciliationModal';
-import { TableContainer, Toolbar, FiltersArea } from '../sharedStyles';
+
+// Imports de estilos
+import {
+    TableContainer,
+    Toolbar,
+    FiltersArea,
+    InfoStack,
+    MoneyText,
+    ExpandedTableWrapper
+} from './styles';
 
 const formatBRL = (val: number) =>
     new Intl.NumberFormat('pt-BR', {
         style: 'currency',
         currency: 'BRL'
-    }).format(val);
+    }).format(val || 0);
 
 export const ExtractTable: React.FC = () => {
-    const [extracts, setExtracts] = useState<IExtract[]>([]);
+    // ESTADOS AGORA GUARDAM "BATCHES"
+    const [batches, setBatches] = useState<IExtractBatch[]>([]);
     const [total, setTotal] = useState(0);
     const [loading, setLoading] = useState(false);
 
     const [isModalOpen, setIsModalOpen] = useState(false);
-    const [editingExtract, setEditingExtract] = useState<IExtract | null>(null);
+    const [editingBatch, setEditingBatch] = useState<IExtractBatch | null>(
+        null
+    );
 
     const [isReconcileModalOpen, setIsReconcileModalOpen] = useState(false);
-    const [reconcilingExtract, setReconcilingExtract] =
-        useState<IExtract | null>(null);
+    const [reconcilingBatch, setReconcilingBatch] =
+        useState<IExtractBatch | null>(null);
 
     const [onlyActiveContracts, setOnlyActiveContracts] = useState(true);
     const [searchText, setSearchText] = useState('');
-
-    // NOVO ESTADO: Filtro de Conciliação
     const [isReconciledFilter, setIsReconciledFilter] = useState<
         boolean | null
     >(null);
@@ -56,25 +70,25 @@ export const ExtractTable: React.FC = () => {
     });
 
     const handleCreateNew = () => {
-        setEditingExtract(null);
+        setEditingBatch(null);
         setIsModalOpen(true);
     };
 
-    const handleEdit = (record: IExtract) => {
-        setEditingExtract(record);
+    const handleEdit = (record: IExtractBatch) => {
+        setEditingBatch(record);
         setIsModalOpen(true);
     };
 
-    const handleReconcile = (record: IExtract) => {
-        setReconcilingExtract(record);
+    const handleReconcile = (record: IExtractBatch) => {
+        setReconcilingBatch(record);
         setIsReconcileModalOpen(true);
     };
 
-    const fetchExtracts = useCallback(async () => {
+    const fetchBatches = useCallback(async () => {
         setLoading(true);
         try {
             const skip = (tableParams.current - 1) * tableParams.pageSize;
-            const response = await ExtractService.getPaginate({
+            const response = await ExtractBatchService.getPaginate({
                 skip,
                 limit: tableParams.pageSize,
                 search_term: searchText || undefined,
@@ -82,7 +96,7 @@ export const ExtractTable: React.FC = () => {
                 is_reconciled:
                     isReconciledFilter !== null ? isReconciledFilter : undefined
             });
-            setExtracts(response.data);
+            setBatches(response.data);
             setTotal(response.total);
         } catch (error) {
             console.error(error);
@@ -93,62 +107,78 @@ export const ExtractTable: React.FC = () => {
 
     useEffect(() => {
         const timeoutId = setTimeout(() => {
-            fetchExtracts();
+            fetchBatches();
         }, 500);
         return () => clearTimeout(timeoutId);
-    }, [fetchExtracts]);
+    }, [fetchBatches]);
 
-    const handleTableChange = (pagination: any) => {
+    const handleTableChange = (pagination: TablePaginationConfig) => {
         setTableParams({
-            current: pagination.current,
-            pageSize: pagination.pageSize
+            current: pagination.current || 1,
+            pageSize: pagination.pageSize || 10
         });
     };
 
+    // ==========================================
+    // COLUNAS DA TABELA PRINCIPAL (Lote/Batch)
+    // ==========================================
     const columns = [
         {
-            title: 'Proprietário / Imóvel',
-            key: 'property',
-            render: (_: any, record: IExtract) => (
-                <div style={{ display: 'flex', flexDirection: 'column' }}>
-                    <span style={{ fontWeight: 600 }}>
-                        {record.contract.property.owner_name}
-                    </span>
-                    <small style={{ color: '#868e96' }}>
-                        {record.contract.property.property_name}
-                    </small>
-                </div>
-            )
+            title: 'Lote / Contratos',
+            key: 'contracts',
+            render: (_: unknown, record: IExtractBatch) => {
+                const count = record.extracts.length;
+                if (count === 1) {
+                    const prop = record.extracts[0].contract.property;
+                    return (
+                        <InfoStack>
+                            <span className="primary-text">
+                                {prop.owner_name}
+                            </span>
+                            <span className="secondary-text">
+                                {prop.property_name}
+                            </span>
+                        </InfoStack>
+                    );
+                }
+                return (
+                    <InfoStack>
+                        <span className="primary-text">
+                            <FolderOpenOutlined style={{ marginRight: 6 }} />
+                            Lote Múltiplo ({count})
+                        </span>
+                        <span className="secondary-text">
+                            Expanda para ver os detalhes
+                        </span>
+                    </InfoStack>
+                );
+            }
         },
         {
             title: 'Ref.',
             key: 'reference',
-            render: (_: any, record: IExtract) =>
-                `${String(record.month_ref).padStart(2, '0')}/${
-                    record.year_ref
-                }`
+            render: (_: unknown, record: IExtractBatch) => {
+                if (record.extracts.length === 0) return '-';
+                // Mostra a referência do primeiro extrato (geralmente lotes são do mesmo mês)
+                const first = record.extracts[0];
+                return `${String(first.month_ref).padStart(2, '0')}/${
+                    first.year_ref
+                }`;
+            }
         },
         {
-            title: 'Taxa Adm',
-            dataIndex: 'administration_fee',
-            key: 'admin',
+            title: 'Líquido Total',
+            dataIndex: 'total_net_transfer',
+            key: 'total_net_transfer',
             render: (val: number) => (
-                <span style={{ color: '#0e90e2' }}>{formatBRL(val)}</span>
-            )
-        },
-        {
-            title: 'Líquido Esperado',
-            dataIndex: 'net_transfer',
-            key: 'net',
-            render: (val: number) => (
-                <strong style={{ color: '#40c057' }}>{formatBRL(val)}</strong>
+                <MoneyText $variant="positive">{formatBRL(val)}</MoneyText>
             )
         },
         {
             title: 'Status',
             key: 'status',
-            render: (_: any, record: IExtract) => {
-                const isReconciled = !!record.payment;
+            render: (_: unknown, record: IExtractBatch) => {
+                const isReconciled = record.status === 'linked';
                 return (
                     <Tag
                         color={isReconciled ? 'success' : 'warning'}
@@ -172,7 +202,7 @@ export const ExtractTable: React.FC = () => {
             align: 'center' as const,
             render: (path: string) =>
                 path ? (
-                    <Tooltip title="Ver Extrato">
+                    <Tooltip title="Ver Comprovante">
                         <a href={path} target="_blank" rel="noreferrer">
                             <FilePdfOutlined
                                 style={{ fontSize: '18px', color: '#fa5252' }}
@@ -187,16 +217,15 @@ export const ExtractTable: React.FC = () => {
             title: 'Ações',
             key: 'actions',
             align: 'right' as const,
-            render: (_: any, record: IExtract) => {
-                const isReconciled = !!record.payment;
-
+            render: (_: unknown, record: IExtractBatch) => {
+                const isReconciled = record.status === 'linked';
                 return (
                     <Space>
                         <Tooltip
                             title={
                                 isReconciled
-                                    ? 'Ver Conciliação'
-                                    : 'Conciliar Pagamento Bancário'
+                                    ? 'Ver Pagamento Vinculado'
+                                    : 'Conciliar Pagamento'
                             }
                         >
                             <Button
@@ -215,7 +244,7 @@ export const ExtractTable: React.FC = () => {
                                 onClick={() => handleReconcile(record)}
                             />
                         </Tooltip>
-                        <Tooltip title="Editar Extrato">
+                        <Tooltip title="Editar Lote">
                             <Button
                                 type="text"
                                 icon={
@@ -232,6 +261,69 @@ export const ExtractTable: React.FC = () => {
         }
     ];
 
+    // ==========================================
+    // COLUNAS DA SUB-TABELA (Extratos Internos)
+    // ==========================================
+    const expandedRowRender = (batch: IExtractBatch) => {
+        const subColumns = [
+            {
+                title: 'Proprietário / Imóvel',
+                key: 'property',
+                render: (_: unknown, record: IExtract) => (
+                    <InfoStack>
+                        <span className="primary-text">
+                            {record.contract.property.owner_name}
+                        </span>
+                        <span className="secondary-text">
+                            {record.contract.property.property_name} (
+                            {record.contract.room_name})
+                        </span>
+                    </InfoStack>
+                )
+            },
+            {
+                title: 'Ref.',
+                key: 'ref',
+                render: (_: unknown, record: IExtract) =>
+                    `${String(record.month_ref).padStart(2, '0')}/${
+                        record.year_ref
+                    }`
+            },
+            {
+                title: 'Aluguel Bruto',
+                dataIndex: 'rent_amount',
+                key: 'rent',
+                render: (val: number) => <MoneyText>{formatBRL(val)}</MoneyText>
+            },
+            {
+                title: 'Taxa Adm',
+                dataIndex: 'administration_fee',
+                key: 'admin',
+                render: (val: number) => <MoneyText>{formatBRL(val)}</MoneyText>
+            },
+            {
+                title: 'Líquido',
+                dataIndex: 'net_transfer',
+                key: 'net',
+                render: (val: number) => (
+                    <MoneyText $variant="positive">{formatBRL(val)}</MoneyText>
+                )
+            }
+        ];
+
+        return (
+            <ExpandedTableWrapper>
+                <Table
+                    columns={subColumns}
+                    dataSource={batch.extracts}
+                    rowKey="key"
+                    pagination={false}
+                    size="small"
+                />
+            </ExpandedTableWrapper>
+        );
+    };
+
     return (
         <TableContainer>
             <Toolbar>
@@ -245,8 +337,6 @@ export const ExtractTable: React.FC = () => {
                         }}
                         style={{ width: 280 }}
                     />
-
-                    {/* NOVO FILTRO: Select de Conciliação */}
                     <Select
                         placeholder="Filtrar por Status"
                         allowClear
@@ -262,7 +352,6 @@ export const ExtractTable: React.FC = () => {
                             { value: true, label: 'Conciliados' }
                         ]}
                     />
-
                     <Space>
                         <Switch
                             checked={onlyActiveContracts}
@@ -279,10 +368,11 @@ export const ExtractTable: React.FC = () => {
                         </span>
                     </Space>
                 </FiltersArea>
+
                 <Space>
                     <Button
                         icon={<ReloadOutlined />}
-                        onClick={fetchExtracts}
+                        onClick={fetchBatches}
                         loading={loading}
                     >
                         Atualizar
@@ -292,16 +382,19 @@ export const ExtractTable: React.FC = () => {
                         icon={<PlusOutlined />}
                         onClick={handleCreateNew}
                     >
-                        Novo Extrato
+                        Novo Lote / Extrato
                     </Button>
                 </Space>
             </Toolbar>
+
             <Table
                 columns={columns}
-                dataSource={extracts}
+                dataSource={batches}
                 rowKey="key"
                 loading={loading}
                 onChange={handleTableChange}
+                // Habilita a sub-tabela expansível
+                expandable={{ expandedRowRender }}
                 pagination={{
                     current: tableParams.current,
                     pageSize: tableParams.pageSize,
@@ -309,22 +402,23 @@ export const ExtractTable: React.FC = () => {
                     showSizeChanger: false
                 }}
             />
-            <ExtractModal
+
+            <ExtractBatchModal
                 isOpen={isModalOpen}
                 onClose={() => setIsModalOpen(false)}
-                onSuccess={fetchExtracts}
-                initialData={editingExtract}
+                onSuccess={fetchBatches}
+                initialData={editingBatch}
             />
 
-            {reconcilingExtract && (
+            {reconcilingBatch && (
                 <ReconciliationModal
                     isOpen={isReconcileModalOpen}
                     onClose={() => {
                         setIsReconcileModalOpen(false);
-                        setReconcilingExtract(null);
+                        setReconcilingBatch(null);
                     }}
-                    onSuccess={fetchExtracts}
-                    extract={reconcilingExtract}
+                    onSuccess={fetchBatches}
+                    batch={reconcilingBatch}
                 />
             )}
         </TableContainer>

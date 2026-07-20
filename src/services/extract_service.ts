@@ -1,11 +1,15 @@
-import { IExtract, IExtractPayload } from 'interfaces/extract';
+import {
+    IExtract,
+    IExtractBatch,
+    IExtractBatchPayload
+} from 'interfaces/extract';
 import { IPaginatedResponse } from 'interfaces/pagination';
 import { IPaymentReconciliation } from 'interfaces/payment';
 import { api } from './api';
 
-const ROUTE = '/extracts';
+const ROUTE = '/extract-batches';
 
-export interface GetExtractsParams {
+export interface GetExtractBatchesParams {
     skip?: number;
     limit?: number;
     search_term?: string;
@@ -13,53 +17,57 @@ export interface GetExtractsParams {
     is_reconciled?: boolean;
 }
 
-export const ExtractService = {
+export const ExtractBatchService = {
     getPaginate: async (
-        params: GetExtractsParams
-    ): Promise<IPaginatedResponse<IExtract>> => {
-        const { data } = await api.get<IPaginatedResponse<IExtract>>(ROUTE, {
-            params
-        });
-        return data;
-    },
-
-    getByKey: async (key: string): Promise<IExtract> => {
-        const { data } = await api.get<IExtract>(`${ROUTE}/${key}`);
-        return data;
-    },
-
-    create: async (payload: IExtractPayload): Promise<IExtract> => {
-        const { data } = await api.post<IExtract>(ROUTE, payload);
-        return data;
-    },
-
-    update: async (
-        key: string,
-        payload: IExtractPayload
-    ): Promise<IExtract> => {
-        const { data } = await api.put<IExtract>(`${ROUTE}/${key}`, payload);
-        return data;
-    },
-
-    delete: async (key: string): Promise<void> => {
-        await api.delete(`${ROUTE}/${key}`);
-    },
-
-    getReconciliationCandidates: async (
-        key: string
-    ): Promise<IPaymentReconciliation> => {
-        const { data } = await api.get<IPaymentReconciliation>(
-            `${ROUTE}/${key}/reconcile`
+        params: GetExtractBatchesParams
+    ): Promise<IPaginatedResponse<IExtractBatch>> => {
+        const { data } = await api.get<IPaginatedResponse<IExtractBatch>>(
+            ROUTE,
+            {
+                params
+            }
         );
         return data;
     },
 
-    uploadReceipt: async (key: string, file: File): Promise<IExtract> => {
+    create: async (payload: IExtractBatchPayload): Promise<IExtractBatch> => {
+        const { data } = await api.post<IExtractBatch>(ROUTE, payload);
+        return data;
+    },
+
+    update: async (
+        batchKey: string,
+        payload: IExtractBatchPayload
+    ): Promise<IExtractBatch> => {
+        const { data } = await api.put<IExtractBatch>(
+            `${ROUTE}/${batchKey}`,
+            payload
+        );
+        return data;
+    },
+
+    delete: async (batchKey: string): Promise<void> => {
+        await api.delete(`${ROUTE}/${batchKey}`);
+    },
+
+    getReconciliationCandidates: async (
+        batchKey: string
+    ): Promise<IPaymentReconciliation> => {
+        const { data } = await api.get<IPaymentReconciliation>(
+            `${ROUTE}/${batchKey}/reconcile`
+        );
+        return data;
+    },
+
+    uploadReceipt: async (
+        batchKey: string,
+        file: File
+    ): Promise<IExtractBatch> => {
         const formData = new FormData();
         formData.append('file', file);
 
-        const { data } = await api.post<IExtract>(
-            `${ROUTE}/${key}/upload-receipt`,
+        const { data } = await api.post<IExtractBatch>(
+            `${ROUTE}/${batchKey}/upload-receipt`,
             formData,
             {
                 headers: {
@@ -69,5 +77,26 @@ export const ExtractService = {
             }
         );
         return data;
+    },
+
+    // ==========================================
+    // OPERAÇÕES DO EXTRATO INDIVIDUAL (NESTED)
+    // ==========================================
+
+    getIndividualExtract: async (
+        batchKey: string,
+        extractKey: string
+    ): Promise<IExtract> => {
+        const { data } = await api.get<IExtract>(
+            `${ROUTE}/${batchKey}/extracts/${extractKey}`
+        );
+        return data;
+    },
+
+    deleteIndividualExtract: async (
+        batchKey: string,
+        extractKey: string
+    ): Promise<void> => {
+        await api.delete(`${ROUTE}/${batchKey}/extracts/${extractKey}`);
     }
 };
