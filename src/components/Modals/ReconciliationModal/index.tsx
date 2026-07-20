@@ -1,3 +1,4 @@
+// src/components/Modals/ReconciliationModal/index.tsx
 import React, { useEffect, useState, useCallback } from 'react';
 import { message, Button, Spin, Alert } from 'antd';
 import {
@@ -6,18 +7,22 @@ import {
     CloseCircleOutlined,
     FrownOutlined
 } from '@ant-design/icons';
-import { IExtract } from 'interfaces/extract';
+
+// IMPORTAÇÕES ATUALIZADAS
+import { IExtractBatch } from 'interfaces/extract';
 import { IPayment } from 'interfaces/payment';
-import { ExtractService } from 'services/extract_service';
+import { ExtractBatchService } from 'services/extract_service';
 import { PaymentService } from 'services/payment_service';
+
 import { StyledModal } from '../sharedStyles';
 import { SummaryContainer, CandidateCard, EmptyStateContainer } from './styles';
 
+// Alterado para receber 'batch' em vez de 'extract'
 interface ReconciliationModalProps {
     isOpen: boolean;
     onClose: () => void;
     onSuccess: () => void;
-    extract: IExtract;
+    batch: IExtractBatch | null;
 }
 
 const formatBRL = (val: number): string =>
@@ -30,7 +35,7 @@ export const ReconciliationModal: React.FC<ReconciliationModalProps> = ({
     isOpen,
     onClose,
     onSuccess,
-    extract
+    batch // NOVO
 }) => {
     const [loading, setLoading] = useState<boolean>(false);
     const [linkingId, setLinkingId] = useState<string | null>(null);
@@ -42,12 +47,13 @@ export const ReconciliationModal: React.FC<ReconciliationModalProps> = ({
     >('pending');
 
     const fetchCandidates = useCallback(async (): Promise<void> => {
-        if (!extract?.key) return;
+        if (!batch?.key) return;
 
         setLoading(true);
         try {
-            const res = await ExtractService.getReconciliationCandidates(
-                extract.key
+            // Nova chamada ao Batch Service
+            const res = await ExtractBatchService.getReconciliationCandidates(
+                batch.key
             );
             setCandidates(res.candidates || []);
             setStatusMessage(res.message);
@@ -58,21 +64,23 @@ export const ReconciliationModal: React.FC<ReconciliationModalProps> = ({
         } finally {
             setLoading(false);
         }
-    }, [extract?.key]);
+    }, [batch?.key]);
 
     useEffect(() => {
-        if (isOpen && extract) {
+        if (isOpen && batch) {
             fetchCandidates();
         }
-    }, [isOpen, extract, fetchCandidates]);
+    }, [isOpen, batch, fetchCandidates]);
 
     const handleLinkPayment = async (payment: IPayment): Promise<void> => {
+        if (!batch?.key) return;
         setLinkingId(payment.key);
+
         try {
             await PaymentService.update(payment.key, {
                 payment_date: payment.payment_date,
                 amount: payment.amount,
-                extract_key: extract.key
+                extract_batch_key: batch.key // ATUALIZADO
             });
             message.success('Pagamento conciliado com sucesso!');
             onSuccess();
@@ -90,7 +98,7 @@ export const ReconciliationModal: React.FC<ReconciliationModalProps> = ({
             await PaymentService.update(payment.key, {
                 payment_date: payment.payment_date,
                 amount: payment.amount,
-                extract_key: null
+                extract_batch_key: undefined // ATUALIZADO: Passamos undefined ou null para desvincular
             });
             message.success('Vínculo desfeito com sucesso!');
             onSuccess();
@@ -101,6 +109,21 @@ export const ReconciliationModal: React.FC<ReconciliationModalProps> = ({
             setLinkingId(null);
         }
     };
+
+    if (!batch) return null;
+
+    // Lógicas visuais de resumo para Lotes
+    const isSingleContract = batch.extracts.length === 1;
+    const propertyDisplay = isSingleContract
+        ? batch.extracts[0].contract.property.property_name
+        : `Lote Múltiplo (${batch.extracts.length} contratos)`;
+
+    const refDisplay =
+        batch.extracts.length > 0
+            ? `${String(batch.extracts[0].month_ref).padStart(2, '0')}/${
+                  batch.extracts[0].year_ref
+              }`
+            : '-';
 
     return (
         <StyledModal
@@ -118,22 +141,18 @@ export const ReconciliationModal: React.FC<ReconciliationModalProps> = ({
         >
             <SummaryContainer>
                 <div>
-                    <span className="label">Imóvel</span>
-                    <span className="value">
-                        {extract.contract.property.property_name}
-                    </span>
+                    <span className="label">Imóvel / Lote</span>
+                    <span className="value">{propertyDisplay}</span>
                 </div>
                 <div>
                     <span className="label">Referência</span>
-                    <span className="value">
-                        {String(extract.month_ref).padStart(2, '0')}/
-                        {extract.year_ref}
-                    </span>
+                    <span className="value">{refDisplay}</span>
                 </div>
                 <div style={{ textAlign: 'right' }}>
                     <span className="label">Valor Líquido Buscado</span>
                     <span className="value target-amount">
-                        {formatBRL(extract.net_transfer)}
+                        {/* ATUALIZADO: Agora busca a soma total do lote */}
+                        {formatBRL(batch.total_net_transfer)}
                     </span>
                 </div>
             </SummaryContainer>
@@ -170,7 +189,6 @@ export const ReconciliationModal: React.FC<ReconciliationModalProps> = ({
                                         {formatBRL(payment.amount)}
                                     </div>
 
-                                    {/* LÓGICA DO BOTÃO VERDE OU VERMELHO */}
                                     {reconStatus === 'alreadyLinked' ? (
                                         <Button
                                             danger
@@ -210,7 +228,7 @@ export const ReconciliationModal: React.FC<ReconciliationModalProps> = ({
                             <p>
                                 Não encontramos nenhum pagamento{' '}
                                 <strong>pendente</strong> no valor exato de{' '}
-                                {formatBRL(extract.net_transfer)}.
+                                {formatBRL(batch.total_net_transfer)}.
                             </p>
                             <small>
                                 Vá até a tela de Pagamentos e registre o
