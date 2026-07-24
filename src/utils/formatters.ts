@@ -37,3 +37,16 @@ export const fromApiPercentage = (value: number): number => {
 export const toApiPercentage = (value: number): number => {
     return Number((value / 100).toFixed(4));
 };
+
+// Função auxiliar para formatar moeda
+export const formatBRL = (val: number): string =>
+    new Intl.NumberFormat('pt-BR', {
+        style: 'currency',
+        currency: 'BRL'
+    }).format(val);
+
+// Função auxiliar para formatar datas (caso venha YYYY-MM-DD)
+export const formatDate = (dateStr: string): string => {
+    const [year, month, day] = dateStr.split('-');
+    return `${day}/${month}/${year}`;
+};

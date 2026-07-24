@@ -5,8 +5,7 @@ import { ContractTable } from 'components/Tables/ContractTable';
 import { TenantTable } from 'components/Tables/TenantTable';
 import { PropertyTable } from 'components/Tables/PropertyTable';
 import { RealEstateTable } from 'components/Tables/RealEstateTable';
-import { GuarantorTable } from 'components/Tables/GuarantorTable';
-import { BailInsuranceTable } from 'components/Tables/BailInsuranceTable';
+import { GuaranteeTable } from 'components/Tables/GuaranteeTable';
 import { PaymentTable } from 'components/Tables/PaymentTable';
 import { ExtractTable } from 'components/Tables/ExtractTable';
 
@@ -64,14 +63,9 @@ const ControlePage: React.FC = () => {
                         children: <RealEstateTable />
                     },
                     {
-                        label: 'Fiadores',
-                        key: 'guarantors',
-                        children: <GuarantorTable />
-                    },
-                    {
-                        label: 'Seguros Fiança',
-                        key: 'bail_insurances',
-                        children: <BailInsuranceTable />
+                        label: 'Garantias',
+                        key: 'guarantees',
+                        children: <GuaranteeTable />
                     }
                 ]}
             />

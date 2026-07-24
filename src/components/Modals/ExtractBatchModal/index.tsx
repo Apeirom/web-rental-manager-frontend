@@ -52,18 +52,15 @@ export const ExtractBatchModal: React.FC<ExtractBatchModalProps> = ({
     const [loading, setLoading] = useState<boolean>(false);
     const [activeKeys, setActiveKeys] = useState<string[]>(['0']);
 
-    // Estados do PDF
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
     const [pdfPreviewUrl, setPdfPreviewUrl] = useState<string | null>(null);
     const [isNewFile, setIsNewFile] = useState<boolean>(false);
 
-    // Estados Financeiros (Soma Total do Lote)
     const [batchPreview, setBatchPreview] = useState({
         adminFee: 0,
         netTransfer: 0
     });
 
-    // Função para recalcular os totais utilizando o utils de financials
     const recalculateBatchTotals = useCallback(
         (
             currentExtracts: IExtractItemPayload[],
@@ -123,7 +120,6 @@ export const ExtractBatchModal: React.FC<ExtractBatchModalProps> = ({
             recalculateBatchTotals(mappedExtracts, initialData);
         } else if (isOpen) {
             form.resetFields();
-            // Tipagem correta sem uso de 'as any'
             form.setFieldsValue({ extracts: [{}] as IExtractItemPayload[] });
             setSelectedFile(null);
             setPdfPreviewUrl(null);
