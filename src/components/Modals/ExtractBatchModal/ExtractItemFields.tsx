@@ -21,7 +21,6 @@ const CurrencyInput = ({
 }) => (
     <FlexItem label={label} name={[fieldKey, name]}>
         <InputNumber
-            min={0}
             defaultValue={0}
             precision={2}
             decimalSeparator=","
