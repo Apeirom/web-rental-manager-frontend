@@ -110,7 +110,7 @@ export const ExtractItemFields: React.FC<ExtractItemFieldsProps> = ({
                 />
                 <CurrencyInput
                     fieldKey={fieldKey}
-                    label="Outras Receitas (R$)"
+                    label="Outros Valores (R$)"
                     name="other_revenues"
                 />
             </FormRow>

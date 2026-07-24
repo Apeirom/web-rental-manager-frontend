@@ -14,23 +14,21 @@ import {
     FilePdfOutlined
 } from '@ant-design/icons';
 import { IContract, IContractPayload } from 'interfaces/contract';
+import { IGuarantee } from 'interfaces/guarantee';
 import { ContractService } from 'services/contract_service';
-
 import { parseCurrencyInput } from 'utils/formatters';
 
-// Importando nossos Dropdowns
+// Dropdowns
 import { TenantDropdown } from '../../Dropdowns/TenantDropdown';
 import { PropertyDropdown } from '../../Dropdowns/PropertyDropdown';
 import { RealEstateDropdown } from '../../Dropdowns/RealEstateDropdown';
-import { GuarantorDropdown } from '../../Dropdowns/GuarantorDropdown';
-import { BailInsuranceDropdown } from '../../Dropdowns/BailInsuranceDropdown';
+import { GuaranteeDropdown } from '../../Dropdowns/GuaranteeDropdown';
 
-// Importando nossos Modais de Criação
+// Modais
 import { TenantModal } from '../TenantModal';
 import { PropertyModal } from '../PropertyModal';
 import { RealEstateModal } from '../RealEstateModal';
-import { GuarantorModal } from '../GuarantorModal';
-import { BailInsuranceModal } from '../BailInsuranceModal';
+import { GuaranteeModal } from '../GuaranteeModal';
 
 import {
     WideModal,
@@ -53,45 +51,69 @@ export const ContractModal: React.FC<ContractModalProps> = ({
     onSuccess,
     initialData
 }) => {
-    const [form] = Form.useForm<IContractPayload>();
+    const [form] = Form.useForm<
+        IContractPayload & { guarantee_type?: string }
+    >();
     const [loading, setLoading] = useState(false);
-
-    // Controle de visualização do PDF
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
     const [pdfPreviewUrl, setPdfPreviewUrl] = useState<string | null>(null);
+    const [reloadGuaranteeDropdown, setReloadGuaranteeDropdown] = useState(0);
 
-    // Controle de abertura dos sub-modais
+    const [preloadedGuarantee, setPreloadedGuarantee] =
+        useState<IGuarantee | null>(null);
+
     const [modals, setModals] = useState({
         tenant: false,
         property: false,
         realEstate: false,
-        guarantor: false,
-        bailInsurance: false
+        guarantee: false
     });
 
     const toggleModal = (modalName: keyof typeof modals, state: boolean) => {
         setModals((prev) => ({ ...prev, [modalName]: state }));
     };
 
+    // Quando o modal de garantia salvar com sucesso
+    const handleGuaranteeSuccess = (newGuarantee?: IGuarantee) => {
+        if (newGuarantee) {
+            setPreloadedGuarantee(newGuarantee); // Injeta no dropdown
+
+            // Troca o seletor visual e a chave da garantia no mesmo momento
+            form.setFieldsValue({
+                guarantee_type: newGuarantee.type,
+                guarantee_key: newGuarantee.key
+            });
+
+            setReloadGuaranteeDropdown((prev) => prev + 1);
+        }
+    };
+
     useEffect(() => {
         if (isOpen && initialData) {
+            // Se for Edição, carrega a garantia velha pro Dropdown não se perder
+            if (initialData.guarantee) {
+                setPreloadedGuarantee(initialData.guarantee);
+            }
+
             form.setFieldsValue({
-                guarantee_type: initialData.guarantee_type,
-                rental_deposit: initialData.rental_deposit,
+                guarantee_type: initialData.guarantee
+                    ? initialData.guarantee.type
+                    : 'none',
                 rent_amount: initialData.rent_amount,
                 room_name: initialData.room_name,
                 status: initialData.status,
                 property_key: initialData.property.key,
                 tenant_key: initialData.tenant.key,
                 real_estate_key: initialData.real_estate?.key,
-                guarantor_key: initialData.guarantor?.key,
-                bail_insurance_key: initialData.bail_insurance?.key
+                guarantee_key: initialData.guarantee?.key
             });
             if (initialData.file_path) {
                 setPdfPreviewUrl(initialData.file_path);
             }
         } else if (isOpen) {
             form.resetFields();
+            form.setFieldsValue({ guarantee_type: 'none', status: 'active' });
+            setPreloadedGuarantee(null);
             setSelectedFile(null);
             setPdfPreviewUrl(null);
         }
@@ -167,7 +189,7 @@ export const ContractModal: React.FC<ContractModalProps> = ({
                             <>
                                 <iframe
                                     src={`${pdfPreviewUrl}#toolbar=0`}
-                                    title="Documento do Contrato"
+                                    title="Documento"
                                 />
                                 <div
                                     style={{
@@ -284,6 +306,30 @@ export const ContractModal: React.FC<ContractModalProps> = ({
                                 />
                             </DropdownRow>
 
+                            <DropdownRow>
+                                <Form.Item
+                                    name="guarantee_key"
+                                    style={{ marginBottom: 0 }}
+                                >
+                                    <GuaranteeDropdown
+                                        label="Garantia"
+                                        reloadTrigger={reloadGuaranteeDropdown}
+                                        preloadedOption={preloadedGuarantee}
+                                    />
+                                </Form.Item>
+
+                                <Form.Item name="guarantee_type" hidden>
+                                    <Input />
+                                </Form.Item>
+
+                                <Button
+                                    icon={<PlusOutlined />}
+                                    onClick={() =>
+                                        toggleModal('guarantee', true)
+                                    }
+                                />
+                            </DropdownRow>
+
                             <div style={{ display: 'flex', gap: '16px' }}>
                                 <Form.Item
                                     label="Valor do Aluguel (R$)"
@@ -308,136 +354,18 @@ export const ContractModal: React.FC<ContractModalProps> = ({
                                 </Form.Item>
                             </div>
 
-                            <div style={{ display: 'flex', gap: '16px' }}>
-                                <Form.Item
-                                    label="Status"
-                                    name="status"
-                                    initialValue="active"
-                                    rules={[{ required: true }]}
-                                    style={{ flex: 1 }}
-                                >
-                                    <Select
-                                        options={[
-                                            { value: 'active', label: 'Ativo' },
-                                            {
-                                                value: 'inactive',
-                                                label: 'Inativo'
-                                            }
-                                        ]}
-                                    />
-                                </Form.Item>
-                                <Form.Item
-                                    label="Tipo de Garantia"
-                                    name="guarantee_type"
-                                    rules={[{ required: true }]}
-                                    style={{ flex: 1 }}
-                                >
-                                    <Select
-                                        options={[
-                                            {
-                                                value: 'deposit',
-                                                label: 'Caução (Depósito)'
-                                            },
-                                            {
-                                                value: 'guarantor',
-                                                label: 'Fiador'
-                                            },
-                                            {
-                                                value: 'bail_insurance',
-                                                label: 'Seguro Fiança'
-                                            },
-                                            {
-                                                value: 'none',
-                                                label: 'Sem Garantia'
-                                            }
-                                        ]}
-                                    />
-                                </Form.Item>
-                            </div>
-
                             <Form.Item
-                                noStyle
-                                dependencies={['guarantee_type']}
+                                label="Status"
+                                name="status"
+                                initialValue="active"
+                                rules={[{ required: true }]}
                             >
-                                {() => {
-                                    const type =
-                                        form.getFieldValue('guarantee_type');
-
-                                    if (type === 'deposit') {
-                                        return (
-                                            <Form.Item
-                                                label="Valor do Caução Depositado (R$)"
-                                                name="rental_deposit"
-                                                rules={[{ required: true }]}
-                                            >
-                                                <InputNumber
-                                                    min={0}
-                                                    precision={2}
-                                                    style={{ width: '100%' }}
-                                                    decimalSeparator=","
-                                                    parser={parseCurrencyInput}
-                                                />
-                                            </Form.Item>
-                                        );
-                                    }
-                                    if (type === 'guarantor') {
-                                        return (
-                                            <DropdownRow>
-                                                <Form.Item
-                                                    name="guarantor_key"
-                                                    rules={[
-                                                        {
-                                                            required: true,
-                                                            message:
-                                                                'Selecione o fiador'
-                                                        }
-                                                    ]}
-                                                    style={{ marginBottom: 0 }}
-                                                >
-                                                    <GuarantorDropdown label="Fiador" />
-                                                </Form.Item>
-                                                <Button
-                                                    icon={<PlusOutlined />}
-                                                    onClick={() =>
-                                                        toggleModal(
-                                                            'guarantor',
-                                                            true
-                                                        )
-                                                    }
-                                                />
-                                            </DropdownRow>
-                                        );
-                                    }
-                                    if (type === 'bail_insurance') {
-                                        return (
-                                            <DropdownRow>
-                                                <Form.Item
-                                                    name="bail_insurance_key"
-                                                    rules={[
-                                                        {
-                                                            required: true,
-                                                            message:
-                                                                'Selecione o seguro'
-                                                        }
-                                                    ]}
-                                                    style={{ marginBottom: 0 }}
-                                                >
-                                                    <BailInsuranceDropdown label="Seguro Fiança" />
-                                                </Form.Item>
-                                                <Button
-                                                    icon={<PlusOutlined />}
-                                                    onClick={() =>
-                                                        toggleModal(
-                                                            'bailInsurance',
-                                                            true
-                                                        )
-                                                    }
-                                                />
-                                            </DropdownRow>
-                                        );
-                                    }
-                                    return null;
-                                }}
+                                <Select
+                                    options={[
+                                        { value: 'active', label: 'Ativo' },
+                                        { value: 'inactive', label: 'Inativo' }
+                                    ]}
+                                />
                             </Form.Item>
                         </Form>
                     </RightPane>
@@ -456,13 +384,11 @@ export const ContractModal: React.FC<ContractModalProps> = ({
                 isOpen={modals.realEstate}
                 onClose={() => toggleModal('realEstate', false)}
             />
-            <GuarantorModal
-                isOpen={modals.guarantor}
-                onClose={() => toggleModal('guarantor', false)}
-            />
-            <BailInsuranceModal
-                isOpen={modals.bailInsurance}
-                onClose={() => toggleModal('bailInsurance', false)}
+
+            <GuaranteeModal
+                isOpen={modals.guarantee}
+                onClose={() => toggleModal('guarantee', false)}
+                onSuccess={handleGuaranteeSuccess}
             />
         </>
     );
