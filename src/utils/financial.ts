@@ -1,27 +1,43 @@
-import { IExtract } from 'interfaces/extract';
+import { IFormExtract } from 'components/Modals/ExtractBatchModal/types';
 
-export const calculateExtractTotals = (
-    values: Partial<IExtract>,
-    commissionRate: number
-) => {
-    const rent = values.rent_amount || 0;
-    const penalty = values.penalty || 0;
+export const calculateExtractTotals = (extract: Partial<IFormExtract>) => {
+    if (!extract) return { adminFee: 0, netTransfer: 0 };
 
-    const rawAdminFee = (rent + penalty) * commissionRate;
-    const adminFee = Math.round(rawAdminFee * 100) / 100;
+    const safeNum = (val?: number) => Number(val) || 0;
 
-    const totalRevenues =
-        rent +
-        (values.iptu || 0) +
-        (values.water || 0) +
-        (values.maintenance || 0) +
-        (values.agreement || 0) +
-        penalty +
-        (values.interest || 0) +
-        (values.other_revenues || 0);
+    const adminFee = safeNum(extract.administration_fee);
+    let netTransfer = 0;
 
-    const rawNetTransfer = totalRevenues - adminFee - (values.bank_fee || 0);
-    const netTransfer = Math.round(rawNetTransfer * 100) / 100;
+    // + Receitas (Créditos)
+    netTransfer += safeNum(extract.rent_amount);
+    netTransfer += safeNum(extract.penalty);
+    netTransfer += safeNum(extract.interest);
+
+    if (extract.dynamic_credits) {
+        netTransfer += extract.dynamic_credits.reduce(
+            (acc, curr) => acc + safeNum(curr.amount),
+            0
+        );
+    }
+
+    // - Despesas (Débitos)
+    netTransfer -= safeNum(extract.iptu);
+    netTransfer -= safeNum(extract.water);
+    netTransfer -= adminFee; // A taxa entra como débito
+    netTransfer -= safeNum(extract.bank_fee);
+
+    if (extract.dynamic_debits) {
+        netTransfer -= extract.dynamic_debits.reduce(
+            (acc, curr) => acc + safeNum(curr.amount),
+            0
+        );
+    }
 
     return { adminFee, netTransfer };
 };
+
+export const formatBRL = (val: number): string =>
+    new Intl.NumberFormat('pt-BR', {
+        style: 'currency',
+        currency: 'BRL'
+    }).format(val || 0);

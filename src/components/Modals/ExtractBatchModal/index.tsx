@@ -1,31 +1,24 @@
 // src/components/Modals/ExtractBatchModal/index.tsx
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Form, Button, message, Tooltip, Collapse } from 'antd';
-import {
-    InfoCircleOutlined,
-    PlusOutlined,
-    DeleteOutlined
-} from '@ant-design/icons';
+import { PlusOutlined, DeleteOutlined } from '@ant-design/icons';
 import type { UploadChangeParam } from 'antd/es/upload';
 import type { UploadFile } from 'antd/es/upload/interface';
 
-import {
-    IExtractBatch,
-    IExtractBatchPayload,
-    IExtractItemPayload
-} from 'interfaces/extract';
+import { IExtractBatch, IExtractBatchPayload } from 'interfaces/extract';
 import { ExtractBatchService } from 'services/extract_service';
-import { calculateExtractTotals } from 'utils/financial';
 
-import { PdfUploader } from './PdfUploader';
+import { IFormValues, IFormExtract, IDynamicItem, IPayloadItem } from './types';
+import { ExtractPanelHeader } from './ExtractPanelHeader';
+import { ExtractBatchTotals } from './ExtractBatchTotals';
 import { ExtractItemFields } from './ExtractItemFields';
+import { PdfUploader } from './PdfUploader';
+
 import {
     WideModal,
     SplitLayout,
     LeftPane,
     RightPane,
-    StickySummaryCard,
-    SummaryItem,
     StyledCollapse
 } from './styles';
 
@@ -36,104 +29,76 @@ interface ExtractBatchModalProps {
     initialData?: IExtractBatch | null;
 }
 
-const formatBRL = (val: number): string =>
-    new Intl.NumberFormat('pt-BR', {
-        style: 'currency',
-        currency: 'BRL'
-    }).format(val || 0);
-
 export const ExtractBatchModal: React.FC<ExtractBatchModalProps> = ({
     isOpen,
     onClose,
     onSuccess,
     initialData
 }) => {
-    const [form] = Form.useForm<IExtractBatchPayload>();
+    const [form] = Form.useForm<IFormValues>();
     const [loading, setLoading] = useState<boolean>(false);
     const [activeKeys, setActiveKeys] = useState<string[]>(['0']);
-
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
     const [pdfPreviewUrl, setPdfPreviewUrl] = useState<string | null>(null);
     const [isNewFile, setIsNewFile] = useState<boolean>(false);
 
-    const [batchPreview, setBatchPreview] = useState({
-        adminFee: 0,
-        netTransfer: 0
-    });
-
-    const recalculateBatchTotals = useCallback(
-        (
-            currentExtracts: IExtractItemPayload[],
-            sourceData?: IExtractBatch | null
-        ) => {
-            if (!currentExtracts) return;
-
-            let totalAdminFee = 0;
-            let totalNetTransfer = 0;
-
-            currentExtracts.forEach((ext, index) => {
-                if (!ext) return;
-
-                const commissionRate =
-                    sourceData?.extracts?.[index]?.contract?.real_estate
-                        ?.commission || 0.1;
-
-                const { adminFee, netTransfer } = calculateExtractTotals(
-                    ext,
-                    commissionRate
-                );
-
-                totalAdminFee += adminFee;
-                totalNetTransfer += netTransfer;
-            });
-
-            setBatchPreview({
-                adminFee: totalAdminFee,
-                netTransfer: totalNetTransfer
-            });
-        },
-        []
-    );
-
     useEffect(() => {
         if (isOpen && initialData) {
-            const mappedExtracts: IExtractItemPayload[] =
-                initialData.extracts.map((ext) => ({
-                    key: ext.key,
-                    contract_key: ext.contract.key,
-                    month_ref: ext.month_ref,
-                    year_ref: ext.year_ref,
-                    rent_amount: ext.rent_amount,
-                    iptu: ext.iptu,
-                    water: ext.water,
-                    maintenance: ext.maintenance,
-                    agreement: ext.agreement,
-                    penalty: ext.penalty,
-                    interest: ext.interest,
-                    other_revenues: ext.other_revenues,
-                    bank_fee: ext.bank_fee
-                }));
+            const mappedExtracts: IFormExtract[] = initialData.extracts.map(
+                (ext: any) => {
+                    const formExt: Partial<IFormExtract> = {
+                        key: ext.key,
+                        contract_key: ext.contract?.key || ext.contract_key,
+                        month_ref: ext.month_ref,
+                        year_ref: ext.year_ref,
+                        dynamic_credits: [],
+                        dynamic_debits: []
+                    };
+
+                    (ext.items || []).forEach((item: IDynamicItem) => {
+                        if (item.category === 'rent')
+                            formExt.rent_amount = item.amount;
+                        else if (item.category === 'penalty')
+                            formExt.penalty = item.amount;
+                        else if (item.category === 'interest')
+                            formExt.interest = item.amount;
+                        else if (item.category === 'iptu')
+                            formExt.iptu = item.amount;
+                        else if (item.category === 'water')
+                            formExt.water = item.amount;
+                        else if (item.category === 'administration_fee')
+                            formExt.administration_fee = item.amount;
+                        else if (item.category === 'bank_fee')
+                            formExt.bank_fee = item.amount;
+                        else if (item.is_credit)
+                            formExt.dynamic_credits?.push(item);
+                        else formExt.dynamic_debits?.push(item);
+                    });
+
+                    return formExt as IFormExtract;
+                }
+            );
 
             form.setFieldsValue({ extracts: mappedExtracts });
             if (initialData.file_path) setPdfPreviewUrl(initialData.file_path);
-
-            recalculateBatchTotals(mappedExtracts, initialData);
         } else if (isOpen) {
             form.resetFields();
-            form.setFieldsValue({ extracts: [{}] as IExtractItemPayload[] });
+            form.setFieldsValue({
+                extracts: [
+                    {
+                        contract_key: '',
+                        month_ref: new Date().getMonth() + 1,
+                        year_ref: new Date().getFullYear(),
+                        dynamic_credits: [],
+                        dynamic_debits: []
+                    }
+                ]
+            });
             setSelectedFile(null);
             setPdfPreviewUrl(null);
-            setBatchPreview({ adminFee: 0, netTransfer: 0 });
         }
         setIsNewFile(false);
-    }, [isOpen, initialData, form, recalculateBatchTotals]);
-
-    const handleValuesChange = (
-        _: unknown,
-        allValues: IExtractBatchPayload
-    ): void => {
-        recalculateBatchTotals(allValues.extracts, initialData);
-    };
+    }, [isOpen, initialData, form]);
 
     const handleFileChange = (info: UploadChangeParam<UploadFile>): void => {
         const file = info.file as unknown as File;
@@ -163,45 +128,92 @@ export const ExtractBatchModal: React.FC<ExtractBatchModalProps> = ({
         onClose();
     };
 
-    const handleSubmit = async (
-        values: IExtractBatchPayload
-    ): Promise<void> => {
+    const handleSubmit = async (values: IFormValues): Promise<void> => {
         setLoading(true);
         try {
-            const cleanExtracts = values.extracts
-                .filter((ext): ext is IExtractItemPayload =>
+            const finalExtracts = values.extracts
+                .filter((ext: IFormExtract) =>
                     Boolean(ext && Object.keys(ext).length > 0)
                 )
-                .map((ext) => ({
-                    ...ext,
-                    rent_amount: ext.rent_amount || 0,
-                    iptu: ext.iptu || 0,
-                    water: ext.water || 0,
-                    maintenance: ext.maintenance || 0,
-                    agreement: ext.agreement || 0,
-                    penalty: ext.penalty || 0,
-                    interest: ext.interest || 0,
-                    other_revenues: ext.other_revenues || 0,
-                    bank_fee: ext.bank_fee || 0
-                }));
+                .map((ext: IFormExtract) => {
+                    const items: IPayloadItem[] = [];
 
-            let filePathPayload: string | undefined | null;
+                    const addFixed = (
+                        amount: number | undefined,
+                        cat: string,
+                        desc: string,
+                        isCredit: boolean,
+                        isWithheld: boolean
+                    ) => {
+                        if (amount && amount > 0) {
+                            items.push({
+                                category: cat,
+                                description: desc,
+                                amount,
+                                is_credit: isCredit,
+                                is_withheld_at_source: isWithheld
+                            });
+                        }
+                    };
 
+                    addFixed(ext.rent_amount, 'rent', 'Aluguel', true, false);
+                    addFixed(ext.penalty, 'penalty', 'Multa', true, false);
+                    addFixed(ext.interest, 'interest', 'Juros', true, false);
+                    addFixed(ext.iptu, 'iptu', 'IPTU', false, false);
+                    addFixed(ext.water, 'water', 'Água', false, false);
+                    addFixed(
+                        ext.administration_fee,
+                        'administration_fee',
+                        'Taxa de Administração',
+                        false,
+                        true
+                    );
+                    addFixed(
+                        ext.bank_fee,
+                        'bank_fee',
+                        'Taxa Bancária',
+                        false,
+                        true
+                    );
+
+                    if (ext.dynamic_credits) {
+                        items.push(
+                            ...ext.dynamic_credits.map((i) => ({
+                                ...i,
+                                is_credit: true
+                            }))
+                        );
+                    }
+
+                    if (ext.dynamic_debits) {
+                        items.push(
+                            ...ext.dynamic_debits.map((i) => ({
+                                ...i,
+                                is_credit: false
+                            }))
+                        );
+                    }
+
+                    return {
+                        key: ext.key,
+                        contract_key: ext.contract_key,
+                        month_ref: ext.month_ref,
+                        year_ref: ext.year_ref,
+                        items
+                    };
+                });
+
+            let filePathPayload: string | null | undefined;
             if (isNewFile) {
-                filePathPayload = undefined;
-            } else if (!pdfPreviewUrl) {
-                filePathPayload = null;
-            } else {
-                filePathPayload = undefined;
+                filePathPayload = pdfPreviewUrl ? undefined : null;
             }
 
             const payload: IExtractBatchPayload = {
-                extracts: cleanExtracts,
+                extracts: finalExtracts,
                 file_path: filePathPayload
             };
 
             let savedBatch: IExtractBatch;
-
             if (initialData) {
                 savedBatch = await ExtractBatchService.update(
                     initialData.key,
@@ -256,41 +268,11 @@ export const ExtractBatchModal: React.FC<ExtractBatchModalProps> = ({
                         onRemoveFile={handleRemoveFile}
                     />
                 </LeftPane>
-
                 <RightPane>
-                    <StickySummaryCard>
-                        <SummaryItem>
-                            <span className="label">
-                                Taxa Adm (Soma do Lote)
-                                <Tooltip title="Calculada sobre o Aluguel + Multa de todos os extratos">
-                                    <InfoCircleOutlined
-                                        style={{
-                                            marginLeft: 4,
-                                            cursor: 'help'
-                                        }}
-                                    />
-                                </Tooltip>
-                            </span>
-                            <span className="value negative">
-                                - {formatBRL(batchPreview.adminFee)}
-                            </span>
-                        </SummaryItem>
-                        <SummaryItem style={{ alignItems: 'flex-end' }}>
-                            <span className="label">
-                                Líquido Total Esperado
-                            </span>
-                            <span className="value positive">
-                                {formatBRL(batchPreview.netTransfer)}
-                            </span>
-                        </SummaryItem>
-                    </StickySummaryCard>
+                    {/* Componente Extraído e Isolado para cálculos gerais */}
+                    <ExtractBatchTotals />
 
-                    <Form
-                        form={form}
-                        layout="vertical"
-                        onFinish={handleSubmit}
-                        onValuesChange={handleValuesChange}
-                    >
+                    <Form form={form} layout="vertical" onFinish={handleSubmit}>
                         <Form.List name="extracts">
                             {(fields, { add, remove }) => (
                                 <>
@@ -305,22 +287,10 @@ export const ExtractBatchModal: React.FC<ExtractBatchModalProps> = ({
                                                 key={field.key.toString()}
                                                 forceRender
                                                 header={
-                                                    <div
-                                                        style={{
-                                                            display: 'flex',
-                                                            justifyContent:
-                                                                'space-between',
-                                                            width: '100%',
-                                                            alignItems: 'center'
-                                                        }}
-                                                    >
-                                                        <span>
-                                                            <strong>
-                                                                Extrato{' '}
-                                                                {index + 1}
-                                                            </strong>
-                                                        </span>
-                                                    </div>
+                                                    <ExtractPanelHeader
+                                                        fieldKey={field.name}
+                                                        index={index}
+                                                    />
                                                 }
                                                 extra={
                                                     fields.length > 1 ? (
@@ -330,7 +300,7 @@ export const ExtractBatchModal: React.FC<ExtractBatchModalProps> = ({
                                                                     color: '#fa5252'
                                                                 }}
                                                                 onClick={(
-                                                                    e: React.MouseEvent<HTMLSpanElement>
+                                                                    e
                                                                 ) => {
                                                                     e.stopPropagation();
                                                                     remove(
@@ -352,7 +322,10 @@ export const ExtractBatchModal: React.FC<ExtractBatchModalProps> = ({
                                     <Button
                                         type="dashed"
                                         onClick={() => {
-                                            add();
+                                            add({
+                                                dynamic_credits: [],
+                                                dynamic_debits: []
+                                            });
                                             setActiveKeys([
                                                 ...activeKeys,
                                                 fields.length.toString()

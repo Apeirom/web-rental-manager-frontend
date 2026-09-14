@@ -1,15 +1,33 @@
+/* eslint-disable jsx-a11y/label-has-associated-control */
 // src/components/Modals/ExtractBatchModal/components/ExtractItemFields.tsx
-import React from 'react';
-import { Form, Input, InputNumber } from 'antd';
+import React, { useState } from 'react';
+import {
+    Form,
+    Input,
+    InputNumber,
+    Button,
+    Modal,
+    Select,
+    Radio,
+    Space
+} from 'antd';
+import { PlusOutlined, DeleteOutlined } from '@ant-design/icons';
 import { parseCurrencyInput } from 'utils/formatters';
+import { formatBRL } from 'utils/financial';
 import { ContractDropdown } from '../../Dropdowns/ContractDropdown';
-import { FormRow, FlexItem, SectionTitle } from './styles';
+import { IDynamicItem } from './types';
+import {
+    FormRow,
+    FlexItem,
+    SectionTitle,
+    DynamicItemList,
+    DynamicItemRow
+} from './styles';
 
 interface ExtractItemFieldsProps {
-    fieldKey: number; // O index do array enviado pelo Form.List
+    fieldKey: number;
 }
 
-// Auxiliar para facilitar a escrita
 const CurrencyInput = ({
     label,
     name,
@@ -19,12 +37,13 @@ const CurrencyInput = ({
     name: string;
     fieldKey: number;
 }) => (
-    <FlexItem label={label} name={[fieldKey, name]}>
+    <FlexItem label={label} name={[fieldKey, name]} initialValue={0}>
         <InputNumber
-            defaultValue={0}
+            min={0}
             precision={2}
             decimalSeparator=","
             parser={parseCurrencyInput}
+            style={{ width: '100%' }}
         />
     </FlexItem>
 );
@@ -32,11 +51,48 @@ const CurrencyInput = ({
 export const ExtractItemFields: React.FC<ExtractItemFieldsProps> = ({
     fieldKey
 }) => {
+    const form = Form.useFormInstance();
+    const [isModalVisible, setIsModalVisible] = useState(false);
+    const [modalType, setModalType] = useState<'credit' | 'debit'>('credit');
+    const [tempItem, setTempItem] = useState<Partial<IDynamicItem>>({
+        category: 'others',
+        is_withheld_at_source: false
+    });
+
+    const openModal = (type: 'credit' | 'debit') => {
+        setModalType(type);
+        setTempItem({
+            category: 'others',
+            description: '',
+            amount: 0,
+            is_withheld_at_source: type === 'debit'
+        });
+        setIsModalVisible(true);
+    };
+
+    const handleAddItem = () => {
+        if (!tempItem.description || !tempItem.amount) return;
+
+        const listName =
+            modalType === 'credit' ? 'dynamic_credits' : 'dynamic_debits';
+        const currentList =
+            form.getFieldValue(['extracts', fieldKey, listName]) || [];
+
+        // Atualização direta e limpa no array do Ant Design
+        form.setFieldValue(
+            ['extracts', fieldKey, listName],
+            [...currentList, { ...tempItem, is_credit: modalType === 'credit' }]
+        );
+
+        setIsModalVisible(false);
+    };
+
     return (
         <>
             <Form.Item name={[fieldKey, 'key']} hidden>
                 <Input />
             </Form.Item>
+
             <Form.Item
                 name={[fieldKey, 'contract_key']}
                 rules={[{ required: true, message: 'Selecione o contrato' }]}
@@ -50,7 +106,12 @@ export const ExtractItemFields: React.FC<ExtractItemFieldsProps> = ({
                     name={[fieldKey, 'month_ref']}
                     rules={[{ required: true }]}
                 >
-                    <InputNumber min={1} max={12} placeholder="Ex: 5" />
+                    <InputNumber
+                        min={1}
+                        max={12}
+                        placeholder="Ex: 5"
+                        style={{ width: '100%' }}
+                    />
                 </FlexItem>
                 <FlexItem
                     label="Ano Ref."
@@ -58,7 +119,11 @@ export const ExtractItemFields: React.FC<ExtractItemFieldsProps> = ({
                     initialValue={2026}
                     rules={[{ required: true }]}
                 >
-                    <InputNumber min={1950} placeholder="Ex: 2026" />
+                    <InputNumber
+                        min={1950}
+                        placeholder="Ex: 2026"
+                        style={{ width: '100%' }}
+                    />
                 </FlexItem>
             </FormRow>
 
@@ -74,19 +139,45 @@ export const ExtractItemFields: React.FC<ExtractItemFieldsProps> = ({
                     label="Multa (R$)"
                     name="penalty"
                 />
-            </FormRow>
-            <FormRow>
                 <CurrencyInput
                     fieldKey={fieldKey}
                     label="Juros (R$)"
                     name="interest"
                 />
-                <CurrencyInput
-                    fieldKey={fieldKey}
-                    label="Acordo (R$)"
-                    name="agreement"
-                />
             </FormRow>
+
+            <Form.List name={[fieldKey, 'dynamic_credits']}>
+                {(fields, { remove }) => (
+                    <DynamicItemList>
+                        {fields.map((field) => {
+                            const item = form.getFieldValue([
+                                'extracts',
+                                fieldKey,
+                                'dynamic_credits',
+                                field.name
+                            ]);
+                            return (
+                                <DynamicItemRow key={field.key}>
+                                    <span>{item?.description}</span>
+                                    <span>{formatBRL(item?.amount)}</span>
+                                    <DeleteOutlined
+                                        onClick={() => remove(field.name)}
+                                        className="delete-icon"
+                                    />
+                                </DynamicItemRow>
+                            );
+                        })}
+                    </DynamicItemList>
+                )}
+            </Form.List>
+            <Button
+                type="dashed"
+                icon={<PlusOutlined />}
+                onClick={() => openModal('credit')}
+                block
+            >
+                Adicionar Receita
+            </Button>
 
             <SectionTitle>Custos e Repasses</SectionTitle>
             <FormRow>
@@ -104,29 +195,149 @@ export const ExtractItemFields: React.FC<ExtractItemFieldsProps> = ({
             <FormRow>
                 <CurrencyInput
                     fieldKey={fieldKey}
-                    label="Manutenção (R$)"
-                    name="maintenance"
+                    label="Taxa de Adm (R$)"
+                    name="administration_fee"
                 />
                 <CurrencyInput
                     fieldKey={fieldKey}
-                    label="Outros Valores (R$)"
-                    name="other_revenues"
+                    label="Taxa Bancária (R$)"
+                    name="bank_fee"
                 />
             </FormRow>
 
-            <Form.Item
-                label="Taxa Bancária (TED/PIX/Boleto)"
-                name={[fieldKey, 'bank_fee']}
+            <Form.List name={[fieldKey, 'dynamic_debits']}>
+                {(fields, { remove }) => (
+                    <DynamicItemList>
+                        {fields.map((field) => {
+                            const item = form.getFieldValue([
+                                'extracts',
+                                fieldKey,
+                                'dynamic_debits',
+                                field.name
+                            ]);
+                            return (
+                                <DynamicItemRow key={field.key}>
+                                    <span>
+                                        {item?.description}{' '}
+                                        <small>
+                                            (
+                                            {item?.is_withheld_at_source
+                                                ? 'Retido'
+                                                : 'Repassado'}
+                                            )
+                                        </small>
+                                    </span>
+                                    <span>{formatBRL(item?.amount)}</span>
+                                    <DeleteOutlined
+                                        onClick={() => remove(field.name)}
+                                        className="delete-icon"
+                                    />
+                                </DynamicItemRow>
+                            );
+                        })}
+                    </DynamicItemList>
+                )}
+            </Form.List>
+            <Button
+                type="dashed"
+                icon={<PlusOutlined />}
+                onClick={() => openModal('debit')}
+                block
             >
-                <InputNumber
-                    min={0}
-                    precision={2}
-                    defaultValue={0}
-                    style={{ width: '50%' }}
-                    decimalSeparator=","
-                    parser={parseCurrencyInput}
-                />
-            </Form.Item>
+                Adicionar Despesa
+            </Button>
+
+            <Modal
+                title={
+                    modalType === 'credit'
+                        ? 'Adicionar Receita'
+                        : 'Adicionar Despesa'
+                }
+                open={isModalVisible}
+                onOk={handleAddItem}
+                onCancel={() => setIsModalVisible(false)}
+                destroyOnClose
+                okText="Adicionar"
+                cancelText="Cancelar"
+            >
+                <Space direction="vertical" style={{ width: '100%' }}>
+                    <div>
+                        <label>Categoria</label>
+                        <Select
+                            style={{ width: '100%', marginTop: 4 }}
+                            value={tempItem.category}
+                            onChange={(v) =>
+                                setTempItem({ ...tempItem, category: v })
+                            }
+                            options={[
+                                {
+                                    value: 'agreement',
+                                    label: 'Taxa de Contrato / Intermediação'
+                                },
+                                { value: 'maintenance', label: 'Manutenção' },
+                                {
+                                    value: 'other_revenues',
+                                    label: 'Outras Receitas'
+                                },
+                                { value: 'others', label: 'Outros' }
+                            ]}
+                        />
+                    </div>
+                    <div>
+                        <label>Descrição</label>
+                        <Input
+                            style={{ marginTop: 4 }}
+                            placeholder="Ex: Conserto da torneira"
+                            value={tempItem.description}
+                            onChange={(e) =>
+                                setTempItem({
+                                    ...tempItem,
+                                    description: e.target.value
+                                })
+                            }
+                        />
+                    </div>
+                    <div>
+                        <label>Valor (R$)</label>
+                        <InputNumber
+                            style={{ width: '100%', marginTop: 4 }}
+                            min={0}
+                            precision={2}
+                            decimalSeparator=","
+                            value={tempItem.amount}
+                            onChange={(v) =>
+                                setTempItem({ ...tempItem, amount: v || 0 })
+                            }
+                        />
+                    </div>
+                    <div>
+                        <label>Comportamento do Valor</label>
+                        <Radio.Group
+                            style={{ width: '100%', marginTop: 4 }}
+                            value={tempItem.is_withheld_at_source}
+                            onChange={(e) =>
+                                setTempItem({
+                                    ...tempItem,
+                                    is_withheld_at_source: e.target.value
+                                })
+                            }
+                        >
+                            <Radio.Button
+                                value
+                                style={{ width: '50%', textAlign: 'center' }}
+                            >
+                                Retido na Fonte
+                            </Radio.Button>
+                            <Radio.Button
+                                value={false}
+                                style={{ width: '50%', textAlign: 'center' }}
+                            >
+                                Repassado
+                            </Radio.Button>
+                        </Radio.Group>
+                    </div>
+                </Space>
+            </Modal>
         </>
     );
 };

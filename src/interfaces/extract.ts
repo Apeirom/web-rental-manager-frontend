@@ -1,25 +1,22 @@
 import { IContract } from './contract';
 import { IPayment } from './payment';
 
+export interface IExtractItem {
+    key: string;
+    category: string;
+    description: string;
+    amount: number;
+    is_credit: boolean;
+    is_withheld_at_source: boolean;
+}
+
 export interface IExtract {
     key: string;
     month_ref: number;
     year_ref: number;
-
-    rent_amount: number;
-    iptu: number;
-    water: number;
-    maintenance: number;
-    agreement: number;
-    penalty: number;
-    interest: number;
-    other_revenues: number;
-
-    administration_fee: number;
-    bank_fee: number;
     net_transfer: number;
-
     contract: IContract;
+    items: IExtractItem[];
 }
 
 export interface IExtractBatch {
@@ -31,24 +28,28 @@ export interface IExtractBatch {
     payment?: IPayment;
 }
 
+// ==========================================
+// PAYLOADS DE ENVIO (POST / PUT)
+// ==========================================
+
 export interface IExtractItemPayload {
+    key?: string;
+    category: string;
+    description: string;
+    amount: number;
+    is_credit: boolean;
+    is_withheld_at_source: boolean;
+}
+
+export interface IExtractPayload {
     key?: string;
     contract_key: string;
     month_ref: number;
     year_ref: number;
-
-    rent_amount: number;
-    iptu: number;
-    water: number;
-    maintenance: number;
-    agreement: number;
-    penalty: number;
-    interest: number;
-    other_revenues: number;
-    bank_fee: number;
+    items: IExtractItemPayload[];
 }
 
 export interface IExtractBatchPayload {
     file_path?: string | null;
-    extracts: IExtractItemPayload[];
+    extracts: IExtractPayload[];
 }
