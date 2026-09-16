@@ -1,4 +1,6 @@
 import {
+    assertExtract,
+    assertExtractBatch,
     IExtract,
     IExtractBatch,
     IExtractBatchPayload
@@ -27,11 +29,13 @@ export const ExtractBatchService = {
                 params
             }
         );
+        data.data.forEach((batch) => assertExtractBatch(batch));
         return data;
     },
 
     create: async (payload: IExtractBatchPayload): Promise<IExtractBatch> => {
         const { data } = await api.post<IExtractBatch>(ROUTE, payload);
+        assertExtractBatch(data);
         return data;
     },
 
@@ -43,6 +47,7 @@ export const ExtractBatchService = {
             `${ROUTE}/${batchKey}`,
             payload
         );
+        assertExtractBatch(data);
         return data;
     },
 
@@ -76,6 +81,7 @@ export const ExtractBatchService = {
                 }
             }
         );
+        assertExtractBatch(data);
         return data;
     },
 
@@ -90,6 +96,7 @@ export const ExtractBatchService = {
         const { data } = await api.get<IExtract>(
             `${ROUTE}/${batchKey}/extracts/${extractKey}`
         );
+        assertExtract(data);
         return data;
     },
 
