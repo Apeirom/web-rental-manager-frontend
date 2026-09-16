@@ -281,7 +281,7 @@ export const ExtractBatchModal: React.FC<ExtractBatchModalProps> = ({
                 </LeftPane>
                 <RightPane>
                     <Form form={form} layout="vertical" onFinish={handleSubmit}>
-                        <ExtractBatchTotals form={form} />
+                        <ExtractBatchTotals />
                         <Form.List name="extracts">
                             {(fields, { add, remove }) => (
                                 <>
@@ -297,7 +297,6 @@ export const ExtractBatchModal: React.FC<ExtractBatchModalProps> = ({
                                                 forceRender
                                                 header={
                                                     <ExtractPanelHeader
-                                                        form={form}
                                                         fieldKey={field.name}
                                                         index={index}
                                                     />
