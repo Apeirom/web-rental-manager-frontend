@@ -29,6 +29,7 @@
             }
         ],
         "camelcase": "off",
+        "no-console": "off",
         "@typescript-eslint/naming-convention": [
             "error",
             {

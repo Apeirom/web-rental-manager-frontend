@@ -33,14 +33,14 @@ export const LeftPane = styled.div`
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    overflow: hidden; /* Garante que o PDF não vaze o border-radius */
+    overflow: hidden;
     position: relative;
 
     iframe {
         width: 100%;
-        height: 100%; /* Alterado de 80vh para 100% */
+        height: 100%;
         border: none;
-        display: block; /* Remove o espaço fantasma que os browsers dão a iframes inline */
+        display: block;
     }
 `;
 
@@ -67,7 +67,7 @@ export const DraggerWrapper = styled.div`
 
 // ================= PANE DIREITO (FORMULÁRIO) =================
 export const RightPane = styled.div`
-    flex: 1.2; /* Um pouco mais largo para acomodar os campos */
+    flex: 1.2;
     overflow-y: auto;
     padding-right: ${({ theme }) => theme.space?.[2] || 8}px;
 
@@ -85,7 +85,7 @@ export const StickySummaryCard = styled.div`
     top: 0;
     z-index: 10;
     background-color: rgba(248, 249, 250, 0.95);
-    border: 1px solid ${({ theme }) => theme.colors?.slate5 || '#dee2e6'};
+    border: 1px solid ${({ theme }) => theme.colors?.slate5 || '#0b0b0b'};
     border-radius: ${({ theme }) => theme.radii?.md || '8px'};
     padding: 12px 16px;
     margin-bottom: 20px;
@@ -161,4 +161,48 @@ export const SectionTitle = styled.div`
     padding-bottom: 8px;
     font-weight: 600;
     color: ${({ theme }) => theme.colors?.slate12 || '#343a40'};
+`;
+
+export const DynamicItemList = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 12px;
+`;
+
+export const DynamicItemRow = styled.div`
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background-color: ${({ theme }) => theme.colors?.slate2 || '#f8f9fa'};
+    padding: 8px 12px;
+    border-radius: 6px;
+    border: 1px solid ${({ theme }) => theme.colors?.slate4 || '#e9ecef'};
+    font-size: 13px;
+    gap: 12px; /* Adiciona um respiro entre os itens */
+
+    /* Alvo 1: O span da Descrição ocupa todo o espaço livre */
+    > span:first-child {
+        flex: 1;
+    }
+
+    /* Alvo 2: O span do Valor ocupa apenas o tamanho do texto dele */
+    > span:nth-child(2) {
+        flex: none;
+        white-space: nowrap; /* Impede o valor monetário de quebrar linha */
+        font-weight: 500;
+    }
+
+    /* Alvo 3: O nosso ícone! */
+    .delete-icon {
+        flex: none;
+        color: ${({ theme }) => theme.colors?.red9 || '#fa5252'};
+        cursor: pointer;
+        padding: 4px;
+        transition: opacity 0.2s;
+
+        &:hover {
+            opacity: 0.7;
+        }
+    }
 `;

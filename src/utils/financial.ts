@@ -1,27 +1,50 @@
-import { IExtract } from 'interfaces/extract';
+// src/utils/financial.ts
+import { IFormExtract } from 'components/Modals/ExtractBatchModal/types';
+import { EXTRACT_ITEM_CATEGORIES } from 'interfaces/extract';
 
-export const calculateExtractTotals = (
-    values: Partial<IExtract>,
-    commissionRate: number
-) => {
-    const rent = values.rent_amount || 0;
-    const penalty = values.penalty || 0;
+export const calculateExtractTotals = (extract: Partial<IFormExtract>) => {
+    if (!extract) return { adminFee: 0, netTransfer: 0 };
+    let adminFee = 0;
+    let netTransfer = 0;
 
-    const rawAdminFee = (rent + penalty) * commissionRate;
-    const adminFee = Math.round(rawAdminFee * 100) / 100;
+    // 1. Fixos
+    if (extract.fixedItems) {
+        Object.entries(extract.fixedItems).forEach(([key, amount]) => {
+            if (amount && amount > 0) {
+                const category = key as keyof typeof EXTRACT_ITEM_CATEGORIES;
+                const rule = EXTRACT_ITEM_CATEGORIES[category];
 
-    const totalRevenues =
-        rent +
-        (values.iptu || 0) +
-        (values.water || 0) +
-        (values.maintenance || 0) +
-        (values.agreement || 0) +
-        penalty +
-        (values.interest || 0) +
-        (values.other_revenues || 0);
+                if (category === 'administration_fee') adminFee += amount;
+                if (rule.is_withheld_at_source === false) netTransfer += amount;
+                else if (rule.is_withheld_at_source === true)
+                    netTransfer -= amount;
+            }
+        });
+    }
 
-    const rawNetTransfer = totalRevenues - adminFee - (values.bank_fee || 0);
-    const netTransfer = Math.round(rawNetTransfer * 100) / 100;
+    // 2. Dinâmicos (Ambas as listas)
+    const processDynamic = (item: {
+        amount?: number;
+        category?: string;
+        is_withheld_at_source?: boolean;
+    }) => {
+        if (item.amount && item.amount > 0) {
+            if (item.category === 'administration_fee') adminFee += item.amount;
+            if (item.is_withheld_at_source === false)
+                netTransfer += item.amount;
+            else if (item.is_withheld_at_source === true)
+                netTransfer -= item.amount;
+        }
+    };
+
+    if (extract.dynamicCredits) extract.dynamicCredits.forEach(processDynamic);
+    if (extract.dynamicDebits) extract.dynamicDebits.forEach(processDynamic);
 
     return { adminFee, netTransfer };
 };
+
+export const formatBRL = (val: number): string =>
+    new Intl.NumberFormat('pt-BR', {
+        style: 'currency',
+        currency: 'BRL'
+    }).format(val || 0);

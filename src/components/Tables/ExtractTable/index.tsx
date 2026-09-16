@@ -291,15 +291,32 @@ export const ExtractTable: React.FC = () => {
             },
             {
                 title: 'Aluguel Bruto',
-                dataIndex: 'rent_amount',
                 key: 'rent',
-                render: (val: number) => <MoneyText>{formatBRL(val)}</MoneyText>
+                render: (_: unknown, record: IExtract) => {
+                    const rentItem = record.items?.find(
+                        (i) => i.category === 'rent'
+                    );
+                    return (
+                        <MoneyText>
+                            {formatBRL(rentItem?.amount || 0)}
+                        </MoneyText>
+                    );
+                }
             },
             {
                 title: 'Taxa Adm',
-                dataIndex: 'administration_fee',
                 key: 'admin',
-                render: (val: number) => <MoneyText>{formatBRL(val)}</MoneyText>
+                // Busca o item da categoria 'administration_fee' no novo array
+                render: (_: unknown, record: IExtract) => {
+                    const adminItem = record.items?.find(
+                        (i) => i.category === 'administration_fee'
+                    );
+                    return (
+                        <MoneyText>
+                            {formatBRL(adminItem?.amount || 0)}
+                        </MoneyText>
+                    );
+                }
             },
             {
                 title: 'Líquido',
