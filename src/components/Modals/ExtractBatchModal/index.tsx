@@ -5,10 +5,17 @@ import { PlusOutlined, DeleteOutlined } from '@ant-design/icons';
 import type { UploadChangeParam } from 'antd/es/upload';
 import type { UploadFile } from 'antd/es/upload/interface';
 
-import { IExtractBatch, IExtractBatchPayload } from 'interfaces/extract';
+import {
+    assertExtractBatch,
+    assertExtractItem,
+    IExtractBatch,
+    IExtractBatchPayload,
+    IExtractItemPayload,
+    EXTRACT_ITEM_CATEGORIES
+} from 'interfaces/extract';
 import { ExtractBatchService } from 'services/extract_service';
 
-import { IFormValues, IFormExtract, IDynamicItem, IPayloadItem } from './types';
+import { IFormValues, IFormExtract, IFixedItems } from './types';
 import { ExtractPanelHeader } from './ExtractPanelHeader';
 import { ExtractBatchTotals } from './ExtractBatchTotals';
 import { ExtractItemFields } from './ExtractItemFields';
@@ -44,43 +51,48 @@ export const ExtractBatchModal: React.FC<ExtractBatchModalProps> = ({
 
     useEffect(() => {
         if (isOpen && initialData) {
-            const mappedExtracts: IFormExtract[] = initialData.extracts.map(
-                (ext: any) => {
-                    const formExt: Partial<IFormExtract> = {
-                        key: ext.key,
-                        contract_key: ext.contract?.key || ext.contract_key,
-                        month_ref: ext.month_ref,
-                        year_ref: ext.year_ref,
-                        dynamic_credits: [],
-                        dynamic_debits: []
-                    };
+            try {
+                assertExtractBatch(initialData);
+                const mappedExtracts: IFormExtract[] = initialData.extracts.map(
+                    (extract) => {
+                        const fixedItems: IFixedItems = {};
+                        const dynamicCredits: IExtractItemPayload[] = [];
+                        const dynamicDebits: IExtractItemPayload[] = [];
 
-                    (ext.items || []).forEach((item: IDynamicItem) => {
-                        if (item.category === 'rent')
-                            formExt.rent_amount = item.amount;
-                        else if (item.category === 'penalty')
-                            formExt.penalty = item.amount;
-                        else if (item.category === 'interest')
-                            formExt.interest = item.amount;
-                        else if (item.category === 'iptu')
-                            formExt.iptu = item.amount;
-                        else if (item.category === 'water')
-                            formExt.water = item.amount;
-                        else if (item.category === 'administration_fee')
-                            formExt.administration_fee = item.amount;
-                        else if (item.category === 'bank_fee')
-                            formExt.bank_fee = item.amount;
-                        else if (item.is_credit)
-                            formExt.dynamic_credits?.push(item);
-                        else formExt.dynamic_debits?.push(item);
-                    });
+                        extract.items.forEach((item) => {
+                            if (
+                                EXTRACT_ITEM_CATEGORIES[item.category].kind ===
+                                'fixed'
+                            ) {
+                                fixedItems[item.category] = item.amount;
+                            } else if (item.is_credit)
+                                dynamicCredits.push({ ...item });
+                            else dynamicDebits.push({ ...item });
+                        });
 
-                    return formExt as IFormExtract;
-                }
-            );
+                        return {
+                            key: extract.key,
+                            contract_key: extract.contract.key,
+                            month_ref: extract.month_ref,
+                            year_ref: extract.year_ref,
+                            fixedItems,
+                            dynamicCredits, // Injetando as duas listas separadas
+                            dynamicDebits
+                        };
+                    }
+                );
 
-            form.setFieldsValue({ extracts: mappedExtracts });
-            if (initialData.file_path) setPdfPreviewUrl(initialData.file_path);
+                form.setFieldsValue({ extracts: mappedExtracts });
+                if (initialData.file_path)
+                    setPdfPreviewUrl(initialData.file_path);
+            } catch (error) {
+                message.error(
+                    error instanceof Error
+                        ? error.message
+                        : 'Estrutura de extrato inválida. Corrija o banco de dados.'
+                );
+                form.resetFields();
+            }
         } else if (isOpen) {
             form.resetFields();
             form.setFieldsValue({
@@ -89,8 +101,9 @@ export const ExtractBatchModal: React.FC<ExtractBatchModalProps> = ({
                         contract_key: '',
                         month_ref: new Date().getMonth() + 1,
                         year_ref: new Date().getFullYear(),
-                        dynamic_credits: [],
-                        dynamic_debits: []
+                        fixedItems: {},
+                        dynamicCredits: [],
+                        dynamicDebits: []
                     }
                 ]
             });
@@ -135,71 +148,65 @@ export const ExtractBatchModal: React.FC<ExtractBatchModalProps> = ({
                 .filter((ext: IFormExtract) =>
                     Boolean(ext && Object.keys(ext).length > 0)
                 )
-                .map((ext: IFormExtract) => {
-                    const items: IPayloadItem[] = [];
+                .map((extract) => {
+                    const allItems: IExtractItemPayload[] = [];
 
-                    const addFixed = (
-                        amount: number | undefined,
-                        cat: string,
-                        desc: string,
-                        isCredit: boolean,
-                        isWithheld: boolean
-                    ) => {
-                        if (amount && amount > 0) {
-                            items.push({
-                                category: cat,
-                                description: desc,
-                                amount,
-                                is_credit: isCredit,
-                                is_withheld_at_source: isWithheld
-                            });
-                        }
-                    };
+                    // 1. Processar itens fixos
+                    if (extract.fixedItems) {
+                        Object.entries(extract.fixedItems).forEach(
+                            ([key, amount]) => {
+                                if (amount && amount > 0) {
+                                    const category =
+                                        key as keyof typeof EXTRACT_ITEM_CATEGORIES;
+                                    const rule =
+                                        EXTRACT_ITEM_CATEGORIES[category];
 
-                    addFixed(ext.rent_amount, 'rent', 'Aluguel', true, false);
-                    addFixed(ext.penalty, 'penalty', 'Multa', true, false);
-                    addFixed(ext.interest, 'interest', 'Juros', true, false);
-                    addFixed(ext.iptu, 'iptu', 'IPTU', false, false);
-                    addFixed(ext.water, 'water', 'Água', false, false);
-                    addFixed(
-                        ext.administration_fee,
-                        'administration_fee',
-                        'Taxa de Administração',
-                        false,
-                        true
-                    );
-                    addFixed(
-                        ext.bank_fee,
-                        'bank_fee',
-                        'Taxa Bancária',
-                        false,
-                        true
-                    );
-
-                    if (ext.dynamic_credits) {
-                        items.push(
-                            ...ext.dynamic_credits.map((i) => ({
-                                ...i,
-                                is_credit: true
-                            }))
+                                    allItems.push({
+                                        category,
+                                        description: rule.description,
+                                        amount,
+                                        is_credit: rule.is_credit as boolean,
+                                        is_withheld_at_source:
+                                            rule.is_withheld_at_source as boolean
+                                    });
+                                }
+                            }
                         );
                     }
 
-                    if (ext.dynamic_debits) {
-                        items.push(
-                            ...ext.dynamic_debits.map((i) => ({
-                                ...i,
-                                is_credit: false
-                            }))
-                        );
+                    // 2. Processar itens dinâmicos (AGORA LENDO AS DUAS LISTAS)
+                    if (extract.dynamicCredits) {
+                        extract.dynamicCredits.forEach((item) => {
+                            if (item.amount && item.amount > 0) {
+                                allItems.push(item);
+                            }
+                        });
                     }
+
+                    if (extract.dynamicDebits) {
+                        extract.dynamicDebits.forEach((item) => {
+                            if (item.amount && item.amount > 0) {
+                                allItems.push(item);
+                            }
+                        });
+                    }
+
+                    // 3. Validação final
+                    allItems.forEach((item, itemIndex) => {
+                        assertExtractItem(
+                            item,
+                            `extracts[${values.extracts.indexOf(
+                                extract
+                            )}].items[${itemIndex}]`
+                        );
+                    });
 
                     return {
-                        key: ext.key,
-                        contract_key: ext.contract_key,
-                        month_ref: ext.month_ref,
-                        year_ref: ext.year_ref,
-                        items
+                        key: extract.key,
+                        contract_key: extract.contract_key,
+                        month_ref: extract.month_ref,
+                        year_ref: extract.year_ref,
+                        items: allItems
                     };
                 });
 
@@ -236,7 +243,11 @@ export const ExtractBatchModal: React.FC<ExtractBatchModalProps> = ({
             if (onSuccess) onSuccess();
             handleClose();
         } catch (error) {
-            message.error('Erro ao salvar o lote de repasse.');
+            message.error(
+                error instanceof Error
+                    ? error.message
+                    : 'Erro ao salvar o lote de repasse.'
+            );
             console.error(error);
         } finally {
             setLoading(false);
@@ -269,10 +280,8 @@ export const ExtractBatchModal: React.FC<ExtractBatchModalProps> = ({
                     />
                 </LeftPane>
                 <RightPane>
-                    {/* Componente Extraído e Isolado para cálculos gerais */}
-                    <ExtractBatchTotals />
-
                     <Form form={form} layout="vertical" onFinish={handleSubmit}>
+                        <ExtractBatchTotals form={form} />
                         <Form.List name="extracts">
                             {(fields, { add, remove }) => (
                                 <>
@@ -288,6 +297,7 @@ export const ExtractBatchModal: React.FC<ExtractBatchModalProps> = ({
                                                 forceRender
                                                 header={
                                                     <ExtractPanelHeader
+                                                        form={form}
                                                         fieldKey={field.name}
                                                         index={index}
                                                     />
@@ -318,13 +328,12 @@ export const ExtractBatchModal: React.FC<ExtractBatchModalProps> = ({
                                             </Collapse.Panel>
                                         ))}
                                     </StyledCollapse>
-
                                     <Button
                                         type="dashed"
                                         onClick={() => {
                                             add({
-                                                dynamic_credits: [],
-                                                dynamic_debits: []
+                                                fixedItems: {},
+                                                dynamicItems: []
                                             });
                                             setActiveKeys([
                                                 ...activeKeys,

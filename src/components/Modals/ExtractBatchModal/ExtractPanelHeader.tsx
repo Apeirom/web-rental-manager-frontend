@@ -1,8 +1,7 @@
 // src/components/Modals/ExtractBatchModal/components/ExtractPanelHeader.tsx
 import React from 'react';
 import { Form } from 'antd';
-import { calculateExtractTotals } from 'utils/financial';
-import { formatBRL } from 'utils/formatters';
+import { calculateExtractTotals, formatBRL } from 'utils/financial';
 import { IFormExtract } from './types';
 
 interface ExtractPanelHeaderProps {
@@ -15,14 +14,15 @@ export const ExtractPanelHeader: React.FC<ExtractPanelHeaderProps> = ({
     index
 }) => {
     return (
-        <Form.Item noStyle dependencies={[['extracts', fieldKey]]}>
-            {({ getFieldValue }) => {
-                const extract: IFormExtract = getFieldValue([
+        <Form.Item shouldUpdate noStyle>
+            {(formInstance) => {
+                // Lê especificamente este extrato em tempo real
+                const extract = formInstance.getFieldValue([
                     'extracts',
                     fieldKey
-                ]);
+                ]) as IFormExtract;
 
-                const { netTransfer } = calculateExtractTotals(extract);
+                const { netTransfer } = calculateExtractTotals(extract || {});
                 const isPositive = netTransfer >= 0;
 
                 return (

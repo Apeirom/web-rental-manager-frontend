@@ -1,37 +1,44 @@
+// src/utils/financial.ts
 import { IFormExtract } from 'components/Modals/ExtractBatchModal/types';
+import { EXTRACT_ITEM_CATEGORIES } from 'interfaces/extract';
 
 export const calculateExtractTotals = (extract: Partial<IFormExtract>) => {
     if (!extract) return { adminFee: 0, netTransfer: 0 };
-
-    const safeNum = (val?: number) => Number(val) || 0;
-
-    const adminFee = safeNum(extract.administration_fee);
+    let adminFee = 0;
     let netTransfer = 0;
 
-    // + Receitas (Créditos)
-    netTransfer += safeNum(extract.rent_amount);
-    netTransfer += safeNum(extract.penalty);
-    netTransfer += safeNum(extract.interest);
+    // 1. Fixos
+    if (extract.fixedItems) {
+        Object.entries(extract.fixedItems).forEach(([key, amount]) => {
+            if (amount && amount > 0) {
+                const category = key as keyof typeof EXTRACT_ITEM_CATEGORIES;
+                const rule = EXTRACT_ITEM_CATEGORIES[category];
 
-    if (extract.dynamic_credits) {
-        netTransfer += extract.dynamic_credits.reduce(
-            (acc, curr) => acc + safeNum(curr.amount),
-            0
-        );
+                if (category === 'administration_fee') adminFee += amount;
+                if (rule.is_withheld_at_source === false) netTransfer += amount;
+                else if (rule.is_withheld_at_source === true)
+                    netTransfer -= amount;
+            }
+        });
     }
 
-    // - Despesas (Débitos)
-    netTransfer -= safeNum(extract.iptu);
-    netTransfer -= safeNum(extract.water);
-    netTransfer -= adminFee; // A taxa entra como débito
-    netTransfer -= safeNum(extract.bank_fee);
+    // 2. Dinâmicos (Ambas as listas)
+    const processDynamic = (item: {
+        amount?: number;
+        category?: string;
+        is_withheld_at_source?: boolean;
+    }) => {
+        if (item.amount && item.amount > 0) {
+            if (item.category === 'administration_fee') adminFee += item.amount;
+            if (item.is_withheld_at_source === false)
+                netTransfer += item.amount;
+            else if (item.is_withheld_at_source === true)
+                netTransfer -= item.amount;
+        }
+    };
 
-    if (extract.dynamic_debits) {
-        netTransfer -= extract.dynamic_debits.reduce(
-            (acc, curr) => acc + safeNum(curr.amount),
-            0
-        );
-    }
+    if (extract.dynamicCredits) extract.dynamicCredits.forEach(processDynamic);
+    if (extract.dynamicDebits) extract.dynamicDebits.forEach(processDynamic);
 
     return { adminFee, netTransfer };
 };

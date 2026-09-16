@@ -8,19 +8,21 @@ import { IFormExtract } from './types';
 
 export const ExtractBatchTotals: React.FC = () => {
     return (
-        <Form.Item noStyle dependencies={['extracts']}>
-            {({ getFieldValue }) => {
-                const currentExtracts: IFormExtract[] =
-                    getFieldValue('extracts') || [];
+        <Form.Item shouldUpdate noStyle>
+            {(formInstance) => {
+                const extracts: IFormExtract[] =
+                    formInstance.getFieldValue('extracts') || [];
 
                 let totalAdminFee = 0;
                 let totalNetTransfer = 0;
 
-                currentExtracts.forEach((ext) => {
-                    const { adminFee, netTransfer } =
-                        calculateExtractTotals(ext);
-                    totalAdminFee += adminFee;
-                    totalNetTransfer += netTransfer;
+                extracts.forEach((ext) => {
+                    if (ext) {
+                        const { adminFee, netTransfer } =
+                            calculateExtractTotals(ext);
+                        totalAdminFee += adminFee;
+                        totalNetTransfer += netTransfer;
+                    }
                 });
 
                 return (
