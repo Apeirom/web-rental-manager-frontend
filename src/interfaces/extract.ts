@@ -56,6 +56,12 @@ export const EXTRACT_ITEM_CATEGORIES = {
         is_withheld_at_source: true,
         is_credit: false
     },
+    partner_share: {
+        description: 'Participação de Sócio',
+        kind: 'dynamic',
+        is_withheld_at_source: null,
+        is_credit: null
+    },
     others: {
         description: 'Outros',
         kind: 'dynamic',
