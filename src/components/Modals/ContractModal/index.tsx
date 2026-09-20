@@ -1,42 +1,23 @@
 import React, { useState, useEffect } from 'react';
-import {
-    Form,
-    Input,
-    InputNumber,
-    Select,
-    Button,
-    Upload,
-    message
-} from 'antd';
-import {
-    PlusOutlined,
-    UploadOutlined,
-    FilePdfOutlined
-} from '@ant-design/icons';
+import { Form, message } from 'antd';
+import type { UploadChangeParam } from 'antd/es/upload';
+import type { UploadFile } from 'antd/es/upload/interface';
+
 import { IContract, IContractPayload } from 'interfaces/contract';
 import { IGuarantee } from 'interfaces/guarantee';
 import { ContractService } from 'services/contract_service';
-import { parseCurrencyInput } from 'utils/formatters';
 
-// Dropdowns
-import { TenantDropdown } from '../../Dropdowns/TenantDropdown';
-import { PropertyDropdown } from '../../Dropdowns/PropertyDropdown';
-import { RealEstateDropdown } from '../../Dropdowns/RealEstateDropdown';
-import { GuaranteeDropdown } from '../../Dropdowns/GuaranteeDropdown';
-
-// Modais
+// Modais Externos
 import { TenantModal } from '../TenantModal';
 import { PropertyModal } from '../PropertyModal';
 import { RealEstateModal } from '../RealEstateModal';
 import { GuaranteeModal } from '../GuaranteeModal';
 
-import {
-    WideModal,
-    SplitLayout,
-    LeftPane,
-    RightPane,
-    DropdownRow
-} from './styles';
+// Subcomponentes
+import { PdfUploader } from './PdfUploader';
+import { ContractFormFields } from './ContractFormFields';
+
+import { WideModal, SplitLayout, LeftPane, RightPane } from './styles';
 
 interface ContractModalProps {
     isOpen: boolean;
@@ -55,13 +36,16 @@ export const ContractModal: React.FC<ContractModalProps> = ({
         IContractPayload & { guarantee_type?: string }
     >();
     const [loading, setLoading] = useState(false);
+
+    // Estados do Arquivo e Correção do Bug
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
     const [pdfPreviewUrl, setPdfPreviewUrl] = useState<string | null>(null);
-    const [reloadGuaranteeDropdown, setReloadGuaranteeDropdown] = useState(0);
+    const [isNewFile, setIsNewFile] = useState<boolean>(false);
 
+    // Estados dos Dropdowns e Modais Auxiliares
+    const [reloadGuaranteeDropdown, setReloadGuaranteeDropdown] = useState(0);
     const [preloadedGuarantee, setPreloadedGuarantee] =
         useState<IGuarantee | null>(null);
-
     const [modals, setModals] = useState({
         tenant: false,
         property: false,
@@ -73,24 +57,19 @@ export const ContractModal: React.FC<ContractModalProps> = ({
         setModals((prev) => ({ ...prev, [modalName]: state }));
     };
 
-    // Quando o modal de garantia salvar com sucesso
     const handleGuaranteeSuccess = (newGuarantee?: IGuarantee) => {
         if (newGuarantee) {
-            setPreloadedGuarantee(newGuarantee); // Injeta no dropdown
-
-            // Troca o seletor visual e a chave da garantia no mesmo momento
+            setPreloadedGuarantee(newGuarantee);
             form.setFieldsValue({
                 guarantee_type: newGuarantee.type,
                 guarantee_key: newGuarantee.key
             });
-
             setReloadGuaranteeDropdown((prev) => prev + 1);
         }
     };
 
     useEffect(() => {
         if (isOpen && initialData) {
-            // Se for Edição, carrega a garantia velha pro Dropdown não se perder
             if (initialData.guarantee) {
                 setPreloadedGuarantee(initialData.guarantee);
             }
@@ -107,6 +86,7 @@ export const ContractModal: React.FC<ContractModalProps> = ({
                 real_estate_key: initialData.real_estate?.key,
                 guarantee_key: initialData.guarantee?.key
             });
+
             if (initialData.file_path) {
                 setPdfPreviewUrl(initialData.file_path);
             }
@@ -117,18 +97,35 @@ export const ContractModal: React.FC<ContractModalProps> = ({
             setSelectedFile(null);
             setPdfPreviewUrl(null);
         }
+
+        // Reseta a flag de novo arquivo ao abrir o modal
+        setIsNewFile(false);
     }, [isOpen, initialData, form]);
 
-    const handleFileChange = (info: any) => {
-        const file = info.file as File;
+    const handleFileChange = (info: UploadChangeParam<UploadFile> | any) => {
+        const file = info.file as unknown as File;
         if (file) {
             setSelectedFile(file);
             setPdfPreviewUrl(URL.createObjectURL(file));
+            setIsNewFile(true); // Sinaliza que o usuário modificou o arquivo
         }
     };
 
-    const handleClose = () => {
+    const handleRemoveFile = () => {
         if (selectedFile && pdfPreviewUrl) URL.revokeObjectURL(pdfPreviewUrl);
+        setSelectedFile(null);
+        setPdfPreviewUrl(null);
+        setIsNewFile(true); // Sinaliza que o usuário modificou (removeu) o arquivo
+    };
+
+    const handleClose = () => {
+        if (
+            selectedFile &&
+            pdfPreviewUrl &&
+            !initialData?.file_path?.includes(pdfPreviewUrl)
+        ) {
+            URL.revokeObjectURL(pdfPreviewUrl);
+        }
         form.resetFields();
         setSelectedFile(null);
         setPdfPreviewUrl(null);
@@ -138,20 +135,29 @@ export const ContractModal: React.FC<ContractModalProps> = ({
     const handleSubmit = async (values: IContractPayload) => {
         setLoading(true);
         try {
+            let filePathPayload: string | null | undefined;
+            if (isNewFile) {
+                filePathPayload = pdfPreviewUrl ? undefined : null;
+            }
+            const payload: IContractPayload = {
+                ...values,
+                file_path: filePathPayload
+            };
+
             let savedContract: IContract;
 
             if (initialData) {
                 savedContract = await ContractService.update(
                     initialData.key,
-                    values
+                    payload
                 );
                 message.success('Contrato atualizado com sucesso!');
             } else {
-                savedContract = await ContractService.create(values);
+                savedContract = await ContractService.create(payload);
                 message.success('Contrato criado com sucesso!');
             }
 
-            if (selectedFile) {
+            if (isNewFile && selectedFile) {
                 await ContractService.uploadDocument(
                     savedContract.key,
                     selectedFile
@@ -185,64 +191,11 @@ export const ContractModal: React.FC<ContractModalProps> = ({
             >
                 <SplitLayout>
                     <LeftPane>
-                        {pdfPreviewUrl ? (
-                            <>
-                                <iframe
-                                    src={`${pdfPreviewUrl}#toolbar=0`}
-                                    title="Documento"
-                                />
-                                <div
-                                    style={{
-                                        position: 'absolute',
-                                        bottom: 16,
-                                        right: 16
-                                    }}
-                                >
-                                    <Upload
-                                        beforeUpload={() => false}
-                                        showUploadList={false}
-                                        onChange={handleFileChange}
-                                        accept=".pdf"
-                                    >
-                                        <Button
-                                            icon={<UploadOutlined />}
-                                            type="primary"
-                                        >
-                                            Trocar PDF
-                                        </Button>
-                                    </Upload>
-                                </div>
-                            </>
-                        ) : (
-                            <Upload.Dragger
-                                beforeUpload={() => false}
-                                showUploadList={false}
-                                onChange={handleFileChange}
-                                accept=".pdf"
-                                style={{
-                                    width: '100%',
-                                    height: '100%',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center'
-                                }}
-                            >
-                                <p className="ant-upload-drag-icon">
-                                    <FilePdfOutlined
-                                        style={{
-                                            fontSize: 48,
-                                            color: '#0e90e2'
-                                        }}
-                                    />
-                                </p>
-                                <p className="ant-upload-text">
-                                    Clique ou arraste um PDF aqui
-                                </p>
-                                <p className="ant-upload-hint">
-                                    Anexe o contrato assinado
-                                </p>
-                            </Upload.Dragger>
-                        )}
+                        <PdfUploader
+                            pdfPreviewUrl={pdfPreviewUrl}
+                            onFileChange={handleFileChange}
+                            onRemoveFile={handleRemoveFile}
+                        />
                     </LeftPane>
 
                     <RightPane>
@@ -251,127 +204,19 @@ export const ContractModal: React.FC<ContractModalProps> = ({
                             layout="vertical"
                             onFinish={handleSubmit}
                         >
-                            <DropdownRow>
-                                <Form.Item
-                                    name="tenant_key"
-                                    rules={[
-                                        {
-                                            required: true,
-                                            message: 'Obrigatório'
-                                        }
-                                    ]}
-                                    style={{ marginBottom: 0 }}
-                                >
-                                    <TenantDropdown label="Inquilino" />
-                                </Form.Item>
-                                <Button
-                                    icon={<PlusOutlined />}
-                                    onClick={() => toggleModal('tenant', true)}
-                                />
-                            </DropdownRow>
-
-                            <DropdownRow>
-                                <Form.Item
-                                    name="property_key"
-                                    rules={[
-                                        {
-                                            required: true,
-                                            message: 'Obrigatório'
-                                        }
-                                    ]}
-                                    style={{ marginBottom: 0 }}
-                                >
-                                    <PropertyDropdown label="Imóvel" />
-                                </Form.Item>
-                                <Button
-                                    icon={<PlusOutlined />}
-                                    onClick={() =>
-                                        toggleModal('property', true)
-                                    }
-                                />
-                            </DropdownRow>
-
-                            <DropdownRow>
-                                <Form.Item
-                                    name="real_estate_key"
-                                    style={{ marginBottom: 0 }}
-                                >
-                                    <RealEstateDropdown label="Imobiliária (Opcional)" />
-                                </Form.Item>
-                                <Button
-                                    icon={<PlusOutlined />}
-                                    onClick={() =>
-                                        toggleModal('realEstate', true)
-                                    }
-                                />
-                            </DropdownRow>
-
-                            <DropdownRow>
-                                <Form.Item
-                                    name="guarantee_key"
-                                    style={{ marginBottom: 0 }}
-                                >
-                                    <GuaranteeDropdown
-                                        label="Garantia"
-                                        reloadTrigger={reloadGuaranteeDropdown}
-                                        preloadedOption={preloadedGuarantee}
-                                    />
-                                </Form.Item>
-
-                                <Form.Item name="guarantee_type" hidden>
-                                    <Input />
-                                </Form.Item>
-
-                                <Button
-                                    icon={<PlusOutlined />}
-                                    onClick={() =>
-                                        toggleModal('guarantee', true)
-                                    }
-                                />
-                            </DropdownRow>
-
-                            <div style={{ display: 'flex', gap: '16px' }}>
-                                <Form.Item
-                                    label="Valor do Aluguel (R$)"
-                                    name="rent_amount"
-                                    rules={[{ required: true }]}
-                                    style={{ flex: 1 }}
-                                >
-                                    <InputNumber
-                                        min={0}
-                                        precision={2}
-                                        style={{ width: '100%' }}
-                                        decimalSeparator=","
-                                        parser={parseCurrencyInput}
-                                    />
-                                </Form.Item>
-                                <Form.Item
-                                    label="Nome do Quarto"
-                                    name="room_name"
-                                    style={{ flex: 1 }}
-                                >
-                                    <Input placeholder="Ex: Suíte Master" />
-                                </Form.Item>
-                            </div>
-
-                            <Form.Item
-                                label="Status"
-                                name="status"
-                                initialValue="active"
-                                rules={[{ required: true }]}
-                            >
-                                <Select
-                                    options={[
-                                        { value: 'active', label: 'Ativo' },
-                                        { value: 'inactive', label: 'Inativo' }
-                                    ]}
-                                />
-                            </Form.Item>
+                            <ContractFormFields
+                                toggleModal={toggleModal}
+                                reloadGuaranteeDropdown={
+                                    reloadGuaranteeDropdown
+                                }
+                                preloadedGuarantee={preloadedGuarantee}
+                            />
                         </Form>
                     </RightPane>
                 </SplitLayout>
             </WideModal>
 
+            {/* Modais Externos */}
             <TenantModal
                 isOpen={modals.tenant}
                 onClose={() => toggleModal('tenant', false)}
@@ -384,7 +229,6 @@ export const ContractModal: React.FC<ContractModalProps> = ({
                 isOpen={modals.realEstate}
                 onClose={() => toggleModal('realEstate', false)}
             />
-
             <GuaranteeModal
                 isOpen={modals.guarantee}
                 onClose={() => toggleModal('guarantee', false)}
