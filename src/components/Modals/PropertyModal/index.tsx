@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Form, Input, InputNumber, message } from 'antd';
 import { PropertyService } from 'services/property_service';
 import { IPropertyPayload, IProperty } from 'interfaces/property';
+import { OwnersDropdown } from 'components/Dropdowns/OwnersDropdown';
 import { StyledModal } from '../sharedStyles';
 
 interface PropertyModalProps {
@@ -25,7 +26,7 @@ export const PropertyModal: React.FC<PropertyModalProps> = ({
             if (initialData) {
                 form.setFieldsValue({
                     property_name: initialData.property_name,
-                    owner_name: initialData.owner_name,
+                    owner_key: initialData.owner.key,
                     address: initialData.address,
                     room_count: initialData.room_count
                 });
@@ -83,16 +84,15 @@ export const PropertyModal: React.FC<PropertyModalProps> = ({
                 </Form.Item>
 
                 <Form.Item
-                    label="Nome do Proprietário"
-                    name="owner_name"
+                    name="owner_key"
                     rules={[
                         {
                             required: true,
-                            message: 'O nome do proprietário é obrigatório'
+                            message: 'O proprietário é obrigatório'
                         }
                     ]}
                 >
-                    <Input placeholder="Ex: Maria Oliveira" />
+                    <OwnersDropdown />
                 </Form.Item>
 
                 <Form.Item
