@@ -3,6 +3,7 @@ import { Tabs } from 'antd';
 import { DashboardLayout } from 'components/DashboardLayout';
 import { ContractTable } from 'components/Tables/ContractTable';
 import { TenantTable } from 'components/Tables/TenantTable';
+import { OwnerTable } from 'components/Tables/OwnerTable';
 import { PropertyTable } from 'components/Tables/PropertyTable';
 import { RealEstateTable } from 'components/Tables/RealEstateTable';
 import { GuaranteeTable } from 'components/Tables/GuaranteeTable';
@@ -51,6 +52,11 @@ const ControlePage: React.FC = () => {
                         label: 'Inquilinos',
                         key: 'tenants',
                         children: <TenantTable />
+                    },
+                    {
+                        label: 'Proprietários',
+                        key: 'owners',
+                        children: <OwnerTable />
                     },
                     {
                         label: 'Imóveis',
