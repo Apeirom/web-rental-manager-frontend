@@ -75,7 +75,11 @@ export const PropertyTable: React.FC = () => {
             sorter: (a: IProperty, b: IProperty) =>
                 a.property_name.localeCompare(b.property_name)
         },
-        { title: 'Proprietário', dataIndex: 'owner_name', key: 'owner_name' },
+        {
+            title: 'Proprietário',
+            key: 'owner',
+            render: (_: unknown, record: IProperty) => record.owner.name
+        },
         { title: 'Endereço', dataIndex: 'address', key: 'address' },
         {
             title: 'Quartos',

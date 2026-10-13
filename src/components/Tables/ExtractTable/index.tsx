@@ -133,7 +133,7 @@ export const ExtractTable: React.FC = () => {
                     return (
                         <InfoStack>
                             <span className="primary-text">
-                                {prop.owner_name}
+                                {prop.owner.name}
                             </span>
                             <span className="secondary-text">
                                 {prop.property_name}
@@ -272,7 +272,7 @@ export const ExtractTable: React.FC = () => {
                 render: (_: unknown, record: IExtract) => (
                     <InfoStack>
                         <span className="primary-text">
-                            {record.contract.property.owner_name}
+                            {record.contract.property.owner.name}
                         </span>
                         <span className="secondary-text">
                             {record.contract.property.property_name} (

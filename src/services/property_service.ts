@@ -9,6 +9,7 @@ export interface GetPropertiesParams {
     limit?: number;
     search_term?: string;
     property_name?: string;
+    // The properties endpoint still supports filtering by the owner's name.
     owner_name?: string;
     only_active_contracts?: boolean;
 }
