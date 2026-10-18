@@ -22,7 +22,8 @@ import {
 import type { TablePaginationConfig } from 'antd';
 
 // Imports atualizados para a arquitetura de Batch
-import { IExtractBatch, IExtract } from 'interfaces/extract';
+import { IExtract } from 'interfaces/extract';
+import { IExtractBatch } from 'interfaces/extract_batch';
 import { ExtractBatchService } from 'services/extract_service';
 import { ExtractBatchModal } from 'components/Modals/ExtractBatchModal';
 import { ReconciliationModal } from 'components/Modals/ReconciliationModal';

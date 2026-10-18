@@ -1,10 +1,6 @@
-import {
-    assertExtract,
-    assertExtractBatch,
-    IExtract,
-    IExtractBatch,
-    IExtractBatchPayload
-} from 'interfaces/extract';
+import { IExtract } from 'interfaces/extract';
+import { IExtractBatch, IExtractBatchPayload } from 'interfaces/extract_batch';
+import { assertExtract, assertExtractBatch } from 'utils/extractValidation';
 import { IPaginatedResponse } from 'interfaces/pagination';
 import { IPaymentReconciliation } from 'interfaces/payment';
 import { api } from './api';

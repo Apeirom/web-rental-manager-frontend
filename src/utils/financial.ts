@@ -1,6 +1,6 @@
 // src/utils/financial.ts
 import { IFormExtract } from 'components/Modals/ExtractBatchModal/types';
-import { EXTRACT_ITEM_CATEGORIES } from 'interfaces/extract';
+import { EXTRACT_ITEM_CATEGORIES } from 'constants/extract';
 
 export const calculateExtractTotals = (extract: Partial<IFormExtract>) => {
     if (!extract) return { adminFee: 0, netTransfer: 0 };

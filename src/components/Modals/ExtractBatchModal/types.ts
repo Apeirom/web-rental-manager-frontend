@@ -1,5 +1,6 @@
 // src/components/Modals/ExtractBatchModal/types.ts
-import { IExtractItemPayload, ExtractItemCategory } from 'interfaces/extract';
+import { ExtractItemCategory } from 'constants/extract';
+import { IExtractItemPayload } from 'interfaces/extract_item';
 
 export type IFixedItems = Partial<Record<ExtractItemCategory, number>>;
 
