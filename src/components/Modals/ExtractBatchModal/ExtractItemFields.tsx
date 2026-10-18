@@ -15,7 +15,7 @@ import { PlusOutlined, DeleteOutlined } from '@ant-design/icons';
 import {
     EXTRACT_DYNAMIC_CATEGORY_OPTIONS,
     ExtractItemCategory
-} from 'interfaces/extract';
+} from 'constants/extract';
 import { parseCurrencyInput } from 'utils/formatters';
 import { formatBRL } from 'utils/financial';
 import { ContractDropdown } from '../../Dropdowns/ContractDropdown';

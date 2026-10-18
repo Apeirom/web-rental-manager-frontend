@@ -1,8 +1,8 @@
 import {
     EXTRACT_ITEM_CATEGORIES,
-    ExtractItemCategory,
-    IExtractItemPayload
-} from 'interfaces/extract';
+    ExtractItemCategory
+} from 'constants/extract';
+import { IExtractItemPayload } from 'interfaces/extract_item';
 
 export const findExtractItem = (
     items: IExtractItemPayload[],
