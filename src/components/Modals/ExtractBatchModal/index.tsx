@@ -5,14 +5,10 @@ import { PlusOutlined, DeleteOutlined } from '@ant-design/icons';
 import type { UploadChangeParam } from 'antd/es/upload';
 import type { UploadFile } from 'antd/es/upload/interface';
 
-import {
-    assertExtractBatch,
-    assertExtractItem,
-    IExtractBatch,
-    IExtractBatchPayload,
-    IExtractItemPayload,
-    EXTRACT_ITEM_CATEGORIES
-} from 'interfaces/extract';
+import { EXTRACT_ITEM_CATEGORIES } from 'constants/extract';
+import { IExtractBatch, IExtractBatchPayload } from 'interfaces/extract_batch';
+import { IExtractItemPayload } from 'interfaces/extract_item';
+import { assertExtractBatch, assertExtractItem } from 'utils/extractValidation';
 import { ExtractBatchService } from 'services/extract_service';
 
 import { IFormValues, IFormExtract, IFixedItems } from './types';

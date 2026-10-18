@@ -9,7 +9,7 @@ import {
 } from '@ant-design/icons';
 
 // IMPORTAÇÕES ATUALIZADAS
-import { IExtractBatch } from 'interfaces/extract';
+import { IExtractBatch } from 'interfaces/extract_batch';
 import { IPayment } from 'interfaces/payment';
 import { ExtractBatchService } from 'services/extract_service';
 import { PaymentService } from 'services/payment_service';
