@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Form, Input, message } from 'antd';
 import { TenantService } from 'services/tenant_service';
 import { ITenantPayload, ITenant } from 'interfaces/tenant';
+import { DocumentNumberInput } from 'components/common/DocumentNumberInput';
 import { StyledModal } from '../sharedStyles';
 
 interface TenantModalProps {
@@ -87,16 +88,10 @@ export const TenantModal: React.FC<TenantModalProps> = ({
                         {
                             required: true,
                             message: 'O documento é obrigatório'
-                        },
-                        {
-                            pattern:
-                                /^(\d{2,3}(\.\d{3}){2}\/\d{4}-\d{2}|\d{3}(\.\d{3}){2}-\d{2})$/,
-                            message:
-                                'Formato inválido. Use a pontuação correta (ex: 000.000.000-00)'
                         }
                     ]}
                 >
-                    <Input placeholder="000.000.000-00" />
+                    <DocumentNumberInput placeholder="000.000.000-00" />
                 </Form.Item>
             </Form>
         </StyledModal>

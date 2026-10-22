@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Form, Input, InputNumber, message } from 'antd';
 import { RealEstateService } from 'services/real_estate_service';
 import { IRealEstatePayload, IRealEstate } from 'interfaces/real_estate';
+import { DocumentNumberInput } from 'components/common/DocumentNumberInput';
 import {
     formatPercentageInput,
     parsePercentageInput,
@@ -98,14 +99,13 @@ export const RealEstateModal: React.FC<RealEstateModalProps> = ({
                     label="CNPJ"
                     name="cnpj"
                     rules={[
-                        { required: true, message: 'O CNPJ é obrigatório' },
-                        {
-                            pattern: /^(\d{2}\.\d{3}\.\d{3}\/\d{4}-\d{2})$/,
-                            message: 'Formato: 00.000.000/0000-00'
-                        }
+                        { required: true, message: 'O CNPJ é obrigatório' }
                     ]}
                 >
-                    <Input placeholder="00.000.000/0000-00" />
+                    <DocumentNumberInput
+                        documentType="cnpj"
+                        placeholder="00.000.000/0000-00"
+                    />
                 </Form.Item>
 
                 <Form.Item

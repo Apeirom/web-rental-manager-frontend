@@ -10,6 +10,9 @@ interface OwnersDropdownProps {
     placeholder?: string;
     label?: string;
     disabled?: boolean;
+    showDocument?: boolean;
+    allowClear?: boolean;
+    onClear?: () => void;
 }
 
 export const OwnersDropdown: React.FC<OwnersDropdownProps> = ({
@@ -17,7 +20,10 @@ export const OwnersDropdown: React.FC<OwnersDropdownProps> = ({
     onChange,
     placeholder = 'Selecione um proprietário',
     label = 'Proprietário',
-    disabled
+    disabled,
+    showDocument = true,
+    allowClear = false,
+    onClear
 }) => {
     const [owners, setOwners] = useState<IOwner[]>([]);
     const [loading, setLoading] = useState(false);
@@ -72,13 +78,21 @@ export const OwnersDropdown: React.FC<OwnersDropdownProps> = ({
                 onSearch={(search) => fetchOwners(search)}
                 value={value || undefined}
                 placeholder={placeholder}
+                allowClear={allowClear}
                 disabled={disabled || loading}
-                onChange={onChange}
+                onChange={(selectedValue) => {
+                    if (selectedValue) {
+                        onChange?.(selectedValue);
+                    } else {
+                        onClear?.();
+                    }
+                }}
                 options={owners.map((owner) => ({
                     value: owner.key,
-                    label: owner.document_number
-                        ? `${owner.name} (${owner.document_number})`
-                        : owner.name
+                    label:
+                        showDocument && owner.document_number
+                            ? `${owner.name} (${owner.document_number})`
+                            : owner.name
                 }))}
                 notFoundContent={
                     loading ? (

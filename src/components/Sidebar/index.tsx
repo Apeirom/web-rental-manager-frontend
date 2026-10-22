@@ -44,7 +44,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ user, onLogout }) => {
             key: '/relatorios',
             icon: <FilePdfOutlined />,
             label: 'Relatórios',
-            comingSoon: true
+            comingSoon: false
         },
         {
             key: '/profile',
