@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Form, Input, message } from 'antd';
 import { IOwner, IOwnerPayload } from 'interfaces/owner';
 import { OwnerService } from 'services/owner_service';
+import { DocumentNumberInput } from 'components/common/DocumentNumberInput';
 import { StyledModal } from '../sharedStyles';
 
 interface OwnerModalProps {
@@ -86,7 +87,7 @@ export const OwnerModal: React.FC<OwnerModalProps> = ({
                 </Form.Item>
 
                 <Form.Item label="Documento (CPF/CNPJ)" name="document_number">
-                    <Input placeholder="Opcional" />
+                    <DocumentNumberInput placeholder="Opcional" />
                 </Form.Item>
             </Form>
         </StyledModal>

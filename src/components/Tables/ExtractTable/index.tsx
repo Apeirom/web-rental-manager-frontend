@@ -24,6 +24,7 @@ import type { TablePaginationConfig } from 'antd';
 // Imports atualizados para a arquitetura de Batch
 import { IExtract } from 'interfaces/extract';
 import { IExtractBatch } from 'interfaces/extract_batch';
+import { IProperty } from 'interfaces/property';
 import { ExtractBatchService } from 'services/extract_service';
 import { ExtractBatchModal } from 'components/Modals/ExtractBatchModal';
 import { ReconciliationModal } from 'components/Modals/ReconciliationModal';
@@ -43,6 +44,15 @@ const formatBRL = (val: number) =>
         style: 'currency',
         currency: 'BRL'
     }).format(val || 0);
+
+const getPropertyOwnerNames = (property: IProperty): string => {
+    const ownerNames = property.equity_participations.map(
+        (participation) => participation.owner.name
+    );
+    return ownerNames.length
+        ? ownerNames.join(', ')
+        : 'Sem proprietário cadastrado';
+};
 
 export const ExtractTable: React.FC = () => {
     // ESTADOS AGORA GUARDAM "BATCHES"
@@ -134,7 +144,7 @@ export const ExtractTable: React.FC = () => {
                     return (
                         <InfoStack>
                             <span className="primary-text">
-                                {prop.owner.name}
+                                {getPropertyOwnerNames(prop)}
                             </span>
                             <span className="secondary-text">
                                 {prop.property_name}
@@ -273,7 +283,7 @@ export const ExtractTable: React.FC = () => {
                 render: (_: unknown, record: IExtract) => (
                     <InfoStack>
                         <span className="primary-text">
-                            {record.contract.property.owner.name}
+                            {getPropertyOwnerNames(record.contract.property)}
                         </span>
                         <span className="secondary-text">
                             {record.contract.property.property_name} (

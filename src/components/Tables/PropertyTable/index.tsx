@@ -1,9 +1,14 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Table, Button, Switch, Input, Space, Tooltip } from 'antd';
+import { Table, Button, Switch, Input, Space, Tooltip, Tag } from 'antd';
+import type { TablePaginationConfig } from 'antd';
 import { PlusOutlined, EditOutlined, ReloadOutlined } from '@ant-design/icons';
 import { IProperty } from 'interfaces/property';
 import { PropertyService } from 'services/property_service';
 import { PropertyModal } from 'components/Modals/PropertyModal';
+import {
+    PROPERTY_TABLE_INITIAL_PAGE,
+    PROPERTY_TABLE_PAGE_SIZE
+} from 'constants/property_constants';
 import { TableContainer, Toolbar, FiltersArea } from '../sharedStyles';
 
 export const PropertyTable: React.FC = () => {
@@ -20,8 +25,8 @@ export const PropertyTable: React.FC = () => {
     const [searchText, setSearchText] = useState('');
 
     const [tableParams, setTableParams] = useState({
-        current: 1,
-        pageSize: 10
+        current: PROPERTY_TABLE_INITIAL_PAGE,
+        pageSize: PROPERTY_TABLE_PAGE_SIZE
     });
 
     const fetchProperties = useCallback(async () => {
@@ -50,10 +55,10 @@ export const PropertyTable: React.FC = () => {
         return () => clearTimeout(timeoutId);
     }, [fetchProperties]);
 
-    const handleTableChange = (pagination: any) => {
+    const handleTableChange = (pagination: TablePaginationConfig) => {
         setTableParams({
-            current: pagination.current,
-            pageSize: pagination.pageSize
+            current: pagination.current || PROPERTY_TABLE_INITIAL_PAGE,
+            pageSize: pagination.pageSize || PROPERTY_TABLE_PAGE_SIZE
         });
     };
 
@@ -76,9 +81,21 @@ export const PropertyTable: React.FC = () => {
                 a.property_name.localeCompare(b.property_name)
         },
         {
-            title: 'Proprietário',
-            key: 'owner',
-            render: (_: unknown, record: IProperty) => record.owner.name
+            title: 'Proprietários',
+            key: 'equity_participations',
+            render: (_: unknown, record: IProperty) => {
+                if (!record.equity_participations.length) {
+                    return (
+                        <Tag color="warning">Sem participação cadastrada</Tag>
+                    );
+                }
+                return record.equity_participations
+                    .map(
+                        ({ owner, participation_percentage }) =>
+                            `${owner.name} (${participation_percentage}%)`
+                    )
+                    .join(', ');
+            }
         },
         { title: 'Endereço', dataIndex: 'address', key: 'address' },
         {
@@ -91,7 +108,7 @@ export const PropertyTable: React.FC = () => {
             title: 'Ações',
             key: 'actions',
             align: 'right' as const,
-            render: (_: any, record: IProperty) => (
+            render: (_: unknown, record: IProperty) => (
                 <Tooltip title="Editar Imóvel">
                     <Button
                         type="text"
@@ -112,7 +129,10 @@ export const PropertyTable: React.FC = () => {
                         allowClear
                         onChange={(e) => {
                             setSearchText(e.target.value);
-                            setTableParams((prev) => ({ ...prev, current: 1 }));
+                            setTableParams((prev) => ({
+                                ...prev,
+                                current: PROPERTY_TABLE_INITIAL_PAGE
+                            }));
                         }}
                         style={{ width: 280 }}
                     />
@@ -123,7 +143,7 @@ export const PropertyTable: React.FC = () => {
                                 setOnlyActiveContracts(checked);
                                 setTableParams((prev) => ({
                                     ...prev,
-                                    current: 1
+                                    current: PROPERTY_TABLE_INITIAL_PAGE
                                 }));
                             }}
                         />

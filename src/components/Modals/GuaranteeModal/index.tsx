@@ -17,6 +17,7 @@ import {
 } from 'interfaces/guarantee';
 import { GuaranteeService } from 'services/guarantee_service';
 import { parseCurrencyInput } from 'utils/formatters';
+import { DocumentNumberInput } from 'components/common/DocumentNumberInput';
 
 import { StyledModal, DynamicFormArea, SectionTitle } from './styles';
 
@@ -202,7 +203,7 @@ export const GuaranteeModal: React.FC<GuaranteeModalProps> = ({
                                     { required: true, message: 'Obrigatório' }
                                 ]}
                             >
-                                <Input placeholder="000.000.000-00" />
+                                <DocumentNumberInput placeholder="000.000.000-00" />
                             </Form.Item>
                         </>
                     )}
