@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
 import { Button, Form, Input, InputNumber, message, Space } from 'antd';
 import { MinusCircleOutlined, PlusOutlined } from '@ant-design/icons';
 import { PropertyService } from 'services/property_service';
@@ -9,6 +8,7 @@ import {
     EQUITY_PARTICIPATION_PERCENTAGE_BASE
 } from 'constants/property_constants';
 import { OwnersDropdown } from 'components/Dropdowns/OwnersDropdown';
+import { notifyApiError } from 'utils/error_handler';
 import { StyledModal } from '../sharedStyles';
 
 interface PropertyModalProps {
@@ -16,12 +16,6 @@ interface PropertyModalProps {
     onClose: () => void;
     onSuccess?: () => void;
     initialData?: IProperty | null;
-}
-
-interface IApiErrorResponse {
-    detail?: {
-        translation?: string;
-    };
 }
 
 export const PropertyModal: React.FC<PropertyModalProps> = ({
@@ -105,16 +99,11 @@ export const PropertyModal: React.FC<PropertyModalProps> = ({
             form.resetFields();
             if (onSuccess) onSuccess();
             onClose();
-        } catch (error) {
+        } catch (error: unknown) {
             const fallbackMessage = `Erro ao ${
                 initialData ? 'atualizar' : 'cadastrar'
             } imóvel.`;
-            const apiMessage = axios.isAxiosError<IApiErrorResponse>(error)
-                ? error.response?.data?.detail?.translation
-                : undefined;
-            message.error(
-                typeof apiMessage === 'string' ? apiMessage : fallbackMessage
-            );
+            await notifyApiError(error, fallbackMessage);
         } finally {
             setLoading(false);
         }

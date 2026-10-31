@@ -7,6 +7,7 @@ import {
     IPaymentCreatePayload,
     IPaymentUpdatePayload
 } from 'interfaces/payment';
+import { notifyApiError } from 'utils/error_handler';
 import { StyledModal } from '../sharedStyles';
 
 interface PaymentModalProps {
@@ -62,8 +63,8 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
             form.resetFields();
             if (onSuccess) onSuccess();
             onClose();
-        } catch (error) {
-            message.error('Erro ao salvar pagamento.');
+        } catch (error: unknown) {
+            await notifyApiError(error, 'Erro ao salvar pagamento.');
         } finally {
             setLoading(false);
         }

@@ -19,6 +19,7 @@ import { GuaranteeService } from 'services/guarantee_service';
 import { parseCurrencyInput } from 'utils/formatters';
 import { DocumentNumberInput } from 'components/common/DocumentNumberInput';
 
+import { notifyApiError } from 'utils/error_handler';
 import { StyledModal, DynamicFormArea, SectionTitle } from './styles';
 
 interface GuaranteeModalProps {
@@ -99,8 +100,8 @@ export const GuaranteeModal: React.FC<GuaranteeModalProps> = ({
 
             if (onSuccess) onSuccess(savedGuarantee);
             handleClose();
-        } catch (error) {
-            message.error('Erro ao salvar a garantia.');
+        } catch (error: unknown) {
+            await notifyApiError(error, 'Erro ao salvar a garantia.');
             console.error(error);
         } finally {
             setLoading(false);

@@ -11,6 +11,7 @@ import { IExtractItemPayload } from 'interfaces/extract_item';
 import { assertExtractBatch, assertExtractItem } from 'utils/extractValidation';
 import { ExtractBatchService } from 'services/extract_service';
 
+import { notifyApiError } from 'utils/error_handler';
 import { IFormValues, IFormExtract, IFixedItems } from './types';
 import { ExtractPanelHeader } from './ExtractPanelHeader';
 import { ExtractBatchTotals } from './ExtractBatchTotals';
@@ -238,12 +239,8 @@ export const ExtractBatchModal: React.FC<ExtractBatchModalProps> = ({
 
             if (onSuccess) onSuccess();
             handleClose();
-        } catch (error) {
-            message.error(
-                error instanceof Error
-                    ? error.message
-                    : 'Erro ao salvar o lote de repasse.'
-            );
+        } catch (error: unknown) {
+            await notifyApiError(error, 'Erro ao salvar o lote de repasse.');
             console.error(error);
         } finally {
             setLoading(false);
