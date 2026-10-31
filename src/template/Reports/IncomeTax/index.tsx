@@ -3,7 +3,6 @@ import React, { useState, useEffect } from 'react';
 import Head from 'next/head';
 import Link from 'next/link';
 import dayjs, { Dayjs } from 'dayjs';
-import axios from 'axios';
 import { Button, Card, DatePicker, message, Select, Table } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import {
@@ -20,6 +19,7 @@ import {
     type IncomeTaxTenantType
 } from 'constants/reports';
 import { OwnersDropdown } from 'components/Dropdowns/OwnersDropdown';
+import { notifyApiError } from 'utils/error_handler';
 import {
     type IIncomeTaxExtract,
     type IIncomeTaxReportParams,
@@ -48,41 +48,6 @@ import {
     SummaryValue,
     Title
 } from './styles';
-
-interface IApiErrorResponse {
-    detail?: {
-        translation?: string;
-    };
-}
-
-const getApiErrorMessage = async (
-    error: unknown,
-    fallback: string
-): Promise<string> => {
-    if (!axios.isAxiosError<unknown>(error)) return fallback;
-
-    let responseData = error.response?.data;
-    if (responseData instanceof Blob) {
-        try {
-            responseData = JSON.parse(await responseData.text()) as unknown;
-        } catch {
-            return fallback;
-        }
-    }
-
-    if (
-        typeof responseData === 'object' &&
-        responseData !== null &&
-        'detail' in responseData
-    ) {
-        const { detail } = responseData as IApiErrorResponse;
-        if (typeof detail?.translation === 'string') {
-            return detail.translation;
-        }
-    }
-
-    return fallback;
-};
 
 const columns = (showOwner: boolean): ColumnsType<IIncomeTaxExtract> => {
     const reportColumns: ColumnsType<IIncomeTaxExtract> = [
@@ -185,11 +150,9 @@ const IncomeTaxReportPage: React.FC = () => {
             setSummary(result);
         } catch (error: unknown) {
             console.error('Erro ao consultar o relatório Carnê-Leão', error);
-            message.error(
-                await getApiErrorMessage(
-                    error,
-                    'Não foi possível consultar o relatório. Verifique os filtros e tente novamente.'
-                )
+            await notifyApiError(
+                error,
+                'Não foi possível consultar o relatório. Verifique os filtros e tente novamente.'
             );
             setSummary(null);
         } finally {
@@ -224,11 +187,9 @@ const IncomeTaxReportPage: React.FC = () => {
             window.URL.revokeObjectURL(url);
         } catch (error: unknown) {
             console.error('Erro ao exportar relatório Carnê-Leão', error);
-            message.error(
-                await getApiErrorMessage(
-                    error,
-                    'Não foi possível baixar o arquivo CSV.'
-                )
+            await notifyApiError(
+                error,
+                'Não foi possível baixar o arquivo CSV.'
             );
         } finally {
             setExporting(false);

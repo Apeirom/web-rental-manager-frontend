@@ -14,6 +14,7 @@ import { IPayment } from 'interfaces/payment';
 import { ExtractBatchService } from 'services/extract_service';
 import { PaymentService } from 'services/payment_service';
 
+import { notifyApiError } from 'utils/error_handler';
 import { StyledModal } from '../sharedStyles';
 import { SummaryContainer, CandidateCard, EmptyStateContainer } from './styles';
 
@@ -58,8 +59,11 @@ export const ReconciliationModal: React.FC<ReconciliationModalProps> = ({
             setCandidates(res.candidates || []);
             setStatusMessage(res.message);
             setReconStatus(res.status);
-        } catch (error) {
-            message.error('Erro ao buscar informações de conciliação.');
+        } catch (error: unknown) {
+            await notifyApiError(
+                error,
+                'Erro ao buscar informações de conciliação.'
+            );
             setCandidates([]);
         } finally {
             setLoading(false);
@@ -85,8 +89,8 @@ export const ReconciliationModal: React.FC<ReconciliationModalProps> = ({
             message.success('Pagamento conciliado com sucesso!');
             onSuccess();
             onClose();
-        } catch (error) {
-            message.error('Erro ao vincular o pagamento.');
+        } catch (error: unknown) {
+            await notifyApiError(error, 'Erro ao vincular o pagamento.');
         } finally {
             setLinkingId(null);
         }
@@ -103,8 +107,8 @@ export const ReconciliationModal: React.FC<ReconciliationModalProps> = ({
             message.success('Vínculo desfeito com sucesso!');
             onSuccess();
             onClose();
-        } catch (error) {
-            message.error('Erro ao desvincular o pagamento.');
+        } catch (error: unknown) {
+            await notifyApiError(error, 'Erro ao desvincular o pagamento.');
         } finally {
             setLinkingId(null);
         }

@@ -11,6 +11,7 @@ import {
 import { useAuth } from 'hooks/useAuth';
 import { IAuthPayload } from 'interfaces/auth';
 import { HealthService } from 'services/health_service';
+import { notifyApiError } from 'utils/error_handler';
 import { Container, FormCard, Header, Title, Subtitle } from './styles';
 
 export const LoginTemplate: React.FC = () => {
@@ -24,6 +25,14 @@ export const LoginTemplate: React.FC = () => {
     >('checking');
 
     useEffect(() => {
+        if (typeof window !== 'undefined') {
+            const params = new URLSearchParams(window.location.search);
+            if (params.get('session_expired') === 'true') {
+                message.warning('Sua sessão expirou. Faça login novamente.');
+                window.history.replaceState({}, '', '/');
+            }
+        }
+
         const pingServer = async () => {
             setServerStatus('checking');
             let isAwake = await HealthService.wakeUpServer();
@@ -46,8 +55,11 @@ export const LoginTemplate: React.FC = () => {
             await signIn(values.email, values.password);
             message.success('Login realizado com sucesso!');
             router.push('/controle');
-        } catch (error) {
-            message.error('E-mail ou senha incorretos. Tente novamente.');
+        } catch (error: unknown) {
+            await notifyApiError(
+                error,
+                'E-mail ou senha incorretos. Tente novamente.'
+            );
         } finally {
             setLoading(false);
         }

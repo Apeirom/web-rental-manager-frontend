@@ -3,6 +3,7 @@ import { Form, Input, message } from 'antd';
 import { IOwner, IOwnerPayload } from 'interfaces/owner';
 import { OwnerService } from 'services/owner_service';
 import { DocumentNumberInput } from 'components/common/DocumentNumberInput';
+import { notifyApiError } from 'utils/error_handler';
 import { StyledModal } from '../sharedStyles';
 
 interface OwnerModalProps {
@@ -52,8 +53,9 @@ export const OwnerModal: React.FC<OwnerModalProps> = ({
             form.resetFields();
             if (onSuccess) onSuccess();
             onClose();
-        } catch (error) {
-            message.error(
+        } catch (error: unknown) {
+            await notifyApiError(
+                error,
                 `Erro ao ${
                     initialData ? 'atualizar' : 'cadastrar'
                 } proprietário.`
