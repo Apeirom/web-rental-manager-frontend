@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Form, Input, message } from 'antd';
 import { UserService } from 'services/user_service';
 import { IUserCreatePayload } from 'interfaces/user';
+import { notifyApiError } from 'utils/error_handler';
 import { StyledModal } from '../sharedStyles';
 
 interface UserModalProps {
@@ -26,12 +27,8 @@ export const UserModal: React.FC<UserModalProps> = ({
             form.resetFields();
             if (onSuccess) onSuccess();
             onClose();
-        } catch (error: any) {
-            if (error.response?.data?.detail?.code === 'RM-0016') {
-                message.error('Este e-mail já está em uso.');
-            } else {
-                message.error('Erro ao cadastrar usuário.');
-            }
+        } catch (error: unknown) {
+            await notifyApiError(error, 'Erro ao cadastrar usuário.');
         } finally {
             setLoading(false);
         }

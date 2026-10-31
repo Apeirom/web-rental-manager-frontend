@@ -9,6 +9,7 @@ import {
     fromApiPercentage,
     toApiPercentage
 } from 'utils/formatters';
+import { notifyApiError } from 'utils/error_handler';
 import { StyledModal } from '../sharedStyles';
 
 interface RealEstateModalProps {
@@ -62,8 +63,9 @@ export const RealEstateModal: React.FC<RealEstateModalProps> = ({
             form.resetFields();
             if (onSuccess) onSuccess();
             onClose();
-        } catch (error) {
-            message.error(
+        } catch (error: unknown) {
+            await notifyApiError(
+                error,
                 `Erro ao ${
                     initialData ? 'atualizar' : 'cadastrar'
                 } imobiliária.`

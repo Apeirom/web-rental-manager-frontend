@@ -3,6 +3,7 @@ import { Form, Input, message } from 'antd';
 import { TenantService } from 'services/tenant_service';
 import { ITenantPayload, ITenant } from 'interfaces/tenant';
 import { DocumentNumberInput } from 'components/common/DocumentNumberInput';
+import { notifyApiError } from 'utils/error_handler';
 import { StyledModal } from '../sharedStyles';
 
 interface TenantModalProps {
@@ -47,8 +48,9 @@ export const TenantModal: React.FC<TenantModalProps> = ({
             form.resetFields();
             if (onSuccess) onSuccess();
             onClose();
-        } catch (error) {
-            message.error(
+        } catch (error: unknown) {
+            await notifyApiError(
+                error,
                 `Erro ao ${
                     initialData ? 'atualizar' : 'cadastrar'
                 } inquilino. Verifique os dados.`

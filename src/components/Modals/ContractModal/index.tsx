@@ -8,6 +8,7 @@ import { IGuarantee } from 'interfaces/guarantee';
 import { ContractService } from 'services/contract_service';
 
 // Modais Externos
+import { notifyApiError } from 'utils/error_handler';
 import { TenantModal } from '../TenantModal';
 import { PropertyModal } from '../PropertyModal';
 import { RealEstateModal } from '../RealEstateModal';
@@ -167,8 +168,11 @@ export const ContractModal: React.FC<ContractModalProps> = ({
 
             if (onSuccess) onSuccess();
             handleClose();
-        } catch (error) {
-            message.error('Erro ao processar contrato. Verifique os dados.');
+        } catch (error: unknown) {
+            await notifyApiError(
+                error,
+                'Erro ao processar contrato. Verifique os dados.'
+            );
             console.error(error);
         } finally {
             setLoading(false);
