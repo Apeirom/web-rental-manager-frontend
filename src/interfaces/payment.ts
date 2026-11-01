@@ -9,6 +9,7 @@ export interface IPayment {
 export interface IPaymentCreatePayload {
     payment_date: string;
     amount: number;
+    confirm_duplicate?: boolean;
 }
 
 export interface IPaymentUpdatePayload {

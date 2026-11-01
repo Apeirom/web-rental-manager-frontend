@@ -12,6 +12,27 @@ interface IApiErrorPayload {
 }
 
 /**
+ * Extrai o código de erro da API (detail.code), se presente.
+ */
+export const extractApiErrorCode = (error: unknown): string | undefined => {
+    if (!axios.isAxiosError(error)) {
+        return undefined;
+    }
+
+    const responseData = error.response?.data as IApiErrorPayload | undefined;
+    if (
+        responseData &&
+        typeof responseData === 'object' &&
+        responseData.detail &&
+        typeof responseData.detail === 'object'
+    ) {
+        return responseData.detail.code;
+    }
+
+    return undefined;
+};
+
+/**
  * Extrai a mensagem amigável traduzida retornada pela API (detail.translation) ou recorre ao fallback.
  */
 export const extractApiErrorMessage = async (
