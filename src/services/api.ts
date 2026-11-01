@@ -2,8 +2,7 @@
 import axios from 'axios';
 
 export const api = axios.create({
-    // baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
-    baseURL: 'https://web-retal-manager-backend.onrender.com'
+    baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 });
 
 api.interceptors.request.use(
