@@ -19,24 +19,22 @@ What is included?
 ## 🧿 How to use
 Use this repository as template for your project and run:
 
-`yarn install`
-or
-`yarn`
+`pnpm install`
 
 To run this project use:
 
-`yarn dev`
+`pnpm dev`
 
 To run tests use:
-`yarn test`
+`pnpm test`
 Or to run in watch mode:
-`yarn test:watch`
+`pnpm test:watch`
 
 Or use as template when creating your new repository
 
 ### 📕 Storybook
 
-To run storybook use: `yarn storybook`
+To run storybook use: `pnpm storybook`
 
 ## 🕹 Other Setups
 
