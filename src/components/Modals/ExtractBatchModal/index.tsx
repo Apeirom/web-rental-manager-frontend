@@ -1,22 +1,33 @@
-// src/components/Modals/ExtractBatchModal/index.tsx
 import React, { useState, useEffect } from 'react';
 import { Form, Button, message, Tooltip, Collapse } from 'antd';
 import { PlusOutlined, DeleteOutlined } from '@ant-design/icons';
 import type { UploadChangeParam } from 'antd/es/upload';
 import type { UploadFile } from 'antd/es/upload/interface';
 
-import { EXTRACT_ITEM_CATEGORIES } from 'constants/extract';
+import {
+    EXTRACT_ITEM_CATEGORIES,
+    DUPLICATE_EXTRACT_ERROR_CODE
+} from 'constants/extract';
 import { IExtractBatch, IExtractBatchPayload } from 'interfaces/extract_batch';
 import { IExtractItemPayload } from 'interfaces/extract_item';
 import { assertExtractBatch, assertExtractItem } from 'utils/extractValidation';
 import { ExtractBatchService } from 'services/extract_service';
 
-import { notifyApiError } from 'utils/error_handler';
+import {
+    notifyApiError,
+    extractApiErrorCode,
+    extractApiErrorMessage,
+    extractApiErrorData
+} from 'utils/error_handler';
 import { IFormValues, IFormExtract, IFixedItems } from './types';
 import { ExtractPanelHeader } from './ExtractPanelHeader';
 import { ExtractBatchTotals } from './ExtractBatchTotals';
 import { ExtractItemFields } from './ExtractItemFields';
 import { PdfUploader } from './PdfUploader';
+import {
+    DuplicateExtractModal,
+    IDuplicateExtractDetails
+} from '../DuplicateExtractModal';
 
 import {
     WideModal,
@@ -46,6 +57,13 @@ export const ExtractBatchModal: React.FC<ExtractBatchModalProps> = ({
     const [pdfPreviewUrl, setPdfPreviewUrl] = useState<string | null>(null);
     const [isNewFile, setIsNewFile] = useState<boolean>(false);
 
+    const [duplicateModalOpen, setDuplicateModalOpen] = useState(false);
+    const [pendingBatchPayload, setPendingBatchPayload] =
+        useState<IExtractBatchPayload | null>(null);
+    const [conflictDetails, setConflictDetails] =
+        useState<IDuplicateExtractDetails | null>(null);
+    const [confirmingDuplicate, setConfirmingDuplicate] = useState(false);
+
     useEffect(() => {
         if (isOpen && initialData) {
             try {
@@ -73,7 +91,7 @@ export const ExtractBatchModal: React.FC<ExtractBatchModalProps> = ({
                             month_ref: extract.month_ref,
                             year_ref: extract.year_ref,
                             fixedItems,
-                            dynamicCredits, // Injetando as duas listas separadas
+                            dynamicCredits,
                             dynamicDebits
                         };
                     }
@@ -108,6 +126,8 @@ export const ExtractBatchModal: React.FC<ExtractBatchModalProps> = ({
             setPdfPreviewUrl(null);
         }
         setIsNewFile(false);
+        setDuplicateModalOpen(false);
+        setPendingBatchPayload(null);
     }, [isOpen, initialData, form]);
 
     const handleFileChange = (info: UploadChangeParam<UploadFile>): void => {
@@ -134,6 +154,8 @@ export const ExtractBatchModal: React.FC<ExtractBatchModalProps> = ({
         ) {
             URL.revokeObjectURL(pdfPreviewUrl);
         }
+        setDuplicateModalOpen(false);
+        setPendingBatchPayload(null);
         form.resetFields();
         onClose();
     };
@@ -148,7 +170,6 @@ export const ExtractBatchModal: React.FC<ExtractBatchModalProps> = ({
                 .map((extract) => {
                     const allItems: IExtractItemPayload[] = [];
 
-                    // 1. Processar itens fixos
                     if (extract.fixedItems) {
                         Object.entries(extract.fixedItems).forEach(
                             ([key, amount]) => {
@@ -171,7 +192,6 @@ export const ExtractBatchModal: React.FC<ExtractBatchModalProps> = ({
                         );
                     }
 
-                    // 2. Processar itens dinâmicos (AGORA LENDO AS DUAS LISTAS)
                     if (extract.dynamicCredits) {
                         extract.dynamicCredits.forEach((item) => {
                             if (item.amount && item.amount > 0) {
@@ -188,7 +208,6 @@ export const ExtractBatchModal: React.FC<ExtractBatchModalProps> = ({
                         });
                     }
 
-                    // 3. Validação final
                     allItems.forEach((item, itemIndex) => {
                         assertExtractItem(
                             item,
@@ -240,110 +259,267 @@ export const ExtractBatchModal: React.FC<ExtractBatchModalProps> = ({
             if (onSuccess) onSuccess();
             handleClose();
         } catch (error: unknown) {
-            await notifyApiError(error, 'Erro ao salvar o lote de repasse.');
-            console.error(error);
+            const errorCode = extractApiErrorCode(error);
+            if (errorCode === DUPLICATE_EXTRACT_ERROR_CODE && !initialData) {
+                const errorData = extractApiErrorData(error);
+                const rawErrorMsg = await extractApiErrorMessage(
+                    error,
+                    'Extrato duplicado detectado.'
+                );
+                const detailsPayload = errorData?.details;
+                setConflictDetails({
+                    tenantName: detailsPayload?.tenant_name as
+                        | string
+                        | undefined,
+                    propertyName: detailsPayload?.property_name as
+                        | string
+                        | undefined,
+                    monthRef: detailsPayload?.month_ref as number | undefined,
+                    yearRef: detailsPayload?.year_ref as number | undefined,
+                    duplicateType: detailsPayload?.duplicate_type as
+                        | 'database'
+                        | 'intra_batch'
+                        | undefined,
+                    rawMessage: errorData?.translation || rawErrorMsg
+                });
+                const finalExtracts = values.extracts
+                    .filter((ext: IFormExtract) =>
+                        Boolean(ext && Object.keys(ext).length > 0)
+                    )
+                    .map((extract) => {
+                        const allItems: IExtractItemPayload[] = [];
+                        if (extract.fixedItems) {
+                            Object.entries(extract.fixedItems).forEach(
+                                ([key, amount]) => {
+                                    if (amount && amount > 0) {
+                                        const category =
+                                            key as keyof typeof EXTRACT_ITEM_CATEGORIES;
+                                        const rule =
+                                            EXTRACT_ITEM_CATEGORIES[category];
+                                        allItems.push({
+                                            category,
+                                            description: rule.description,
+                                            amount,
+                                            is_credit:
+                                                rule.is_credit as boolean,
+                                            is_withheld_at_source:
+                                                rule.is_withheld_at_source as boolean
+                                        });
+                                    }
+                                }
+                            );
+                        }
+                        if (extract.dynamicCredits) {
+                            extract.dynamicCredits.forEach((item) => {
+                                if (item.amount && item.amount > 0) {
+                                    allItems.push(item);
+                                }
+                            });
+                        }
+                        if (extract.dynamicDebits) {
+                            extract.dynamicDebits.forEach((item) => {
+                                if (item.amount && item.amount > 0) {
+                                    allItems.push(item);
+                                }
+                            });
+                        }
+                        return {
+                            key: extract.key,
+                            contract_key: extract.contract_key,
+                            month_ref: extract.month_ref,
+                            year_ref: extract.year_ref,
+                            items: allItems
+                        };
+                    });
+
+                let filePathPayload: string | null | undefined;
+                if (isNewFile) {
+                    filePathPayload = pdfPreviewUrl ? undefined : null;
+                }
+
+                setPendingBatchPayload({
+                    extracts: finalExtracts,
+                    file_path: filePathPayload
+                });
+                setDuplicateModalOpen(true);
+            } else {
+                await notifyApiError(
+                    error,
+                    'Erro ao salvar o lote de repasse.'
+                );
+                console.error(error);
+            }
         } finally {
             setLoading(false);
         }
     };
 
-    return (
-        <WideModal
-            title={
-                initialData
-                    ? 'Editar Lote de Repasse'
-                    : 'Novo Lote de Repasse (Múltiplos)'
+    const handleConfirmDuplicate = async (): Promise<void> => {
+        if (!pendingBatchPayload) return;
+        setConfirmingDuplicate(true);
+        try {
+            const confirmedPayload: IExtractBatchPayload = {
+                ...pendingBatchPayload,
+                confirm_duplicate: true
+            };
+            const savedBatch = await ExtractBatchService.create(
+                confirmedPayload
+            );
+            message.success('Lote gerado com sucesso!');
+
+            if (isNewFile && selectedFile) {
+                await ExtractBatchService.uploadReceipt(
+                    savedBatch.key,
+                    selectedFile
+                );
+                message.success('Comprovante anexado ao lote!');
             }
-            open={isOpen}
-            onCancel={handleClose}
-            onOk={() => form.submit()}
-            confirmLoading={loading}
-            okText="Salvar Lote Inteiro"
-            cancelText="Cancelar"
-            width={1050}
-            destroyOnHidden
-            centered
-        >
-            <SplitLayout>
-                <LeftPane>
-                    <PdfUploader
-                        pdfPreviewUrl={pdfPreviewUrl}
-                        onFileChange={handleFileChange}
-                        onRemoveFile={handleRemoveFile}
-                    />
-                </LeftPane>
-                <RightPane>
-                    <Form form={form} layout="vertical" onFinish={handleSubmit}>
+
+            setDuplicateModalOpen(false);
+            setPendingBatchPayload(null);
+            if (onSuccess) onSuccess();
+            handleClose();
+        } catch (error: unknown) {
+            await notifyApiError(
+                error,
+                'Erro ao registrar lote com extratos duplicados.'
+            );
+        } finally {
+            setConfirmingDuplicate(false);
+        }
+    };
+
+    const handleCloseDuplicateModal = (): void => {
+        setDuplicateModalOpen(false);
+        setPendingBatchPayload(null);
+        setConflictDetails(null);
+    };
+
+    return (
+        <>
+            <WideModal
+                title={
+                    initialData
+                        ? 'Editar Lote de Repasse'
+                        : 'Novo Lote de Repasse (Múltiplos)'
+                }
+                open={isOpen}
+                onCancel={handleClose}
+                onOk={() => form.submit()}
+                confirmLoading={loading}
+                okText="Salvar Lote"
+                cancelText="Cancelar"
+                width={1200}
+                destroyOnHidden
+            >
+                <SplitLayout>
+                    <LeftPane>
+                        <PdfUploader
+                            pdfPreviewUrl={pdfPreviewUrl}
+                            onFileChange={handleFileChange}
+                            onRemoveFile={handleRemoveFile}
+                        />
+                    </LeftPane>
+
+                    <RightPane>
                         <ExtractBatchTotals />
-                        <Form.List name="extracts">
-                            {(fields, { add, remove }) => (
-                                <>
-                                    <StyledCollapse
-                                        activeKey={activeKeys}
-                                        onChange={(keys) =>
-                                            setActiveKeys(keys as string[])
-                                        }
-                                    >
-                                        {fields.map((field, index) => (
-                                            <Collapse.Panel
-                                                key={field.key.toString()}
-                                                forceRender
-                                                header={
-                                                    <ExtractPanelHeader
-                                                        fieldKey={field.name}
-                                                        index={index}
+
+                        <Form
+                            form={form}
+                            layout="vertical"
+                            onFinish={handleSubmit}
+                        >
+                            <Form.List name="extracts">
+                                {(fields, { add, remove }) => (
+                                    <>
+                                        <StyledCollapse
+                                            activeKey={activeKeys}
+                                            onChange={(keys) =>
+                                                setActiveKeys(
+                                                    Array.isArray(keys)
+                                                        ? keys
+                                                        : [keys]
+                                                )
+                                            }
+                                        >
+                                            {fields.map(({ key, name }) => (
+                                                <Collapse.Panel
+                                                    key={key.toString()}
+                                                    header={
+                                                        <ExtractPanelHeader
+                                                            fieldKey={name}
+                                                            index={name}
+                                                        />
+                                                    }
+                                                    extra={
+                                                        fields.length > 1 && (
+                                                            <Tooltip title="Remover este extrato do lote">
+                                                                <Button
+                                                                    type="text"
+                                                                    danger
+                                                                    icon={
+                                                                        <DeleteOutlined />
+                                                                    }
+                                                                    onClick={(
+                                                                        e
+                                                                    ) => {
+                                                                        e.stopPropagation();
+                                                                        remove(
+                                                                            name
+                                                                        );
+                                                                    }}
+                                                                />
+                                                            </Tooltip>
+                                                        )
+                                                    }
+                                                >
+                                                    <ExtractItemFields
+                                                        fieldKey={name}
                                                     />
-                                                }
-                                                extra={
-                                                    fields.length > 1 ? (
-                                                        <Tooltip title="Remover este extrato do lote">
-                                                            <DeleteOutlined
-                                                                style={{
-                                                                    color: '#fa5252'
-                                                                }}
-                                                                onClick={(
-                                                                    e
-                                                                ) => {
-                                                                    e.stopPropagation();
-                                                                    remove(
-                                                                        field.name
-                                                                    );
-                                                                }}
-                                                            />
-                                                        </Tooltip>
-                                                    ) : null
-                                                }
-                                            >
-                                                <ExtractItemFields
-                                                    fieldKey={field.name}
-                                                />
-                                            </Collapse.Panel>
-                                        ))}
-                                    </StyledCollapse>
-                                    <Button
-                                        type="dashed"
-                                        onClick={() => {
-                                            add({
-                                                fixedItems: {},
-                                                dynamicItems: []
-                                            });
-                                            setActiveKeys([
-                                                ...activeKeys,
-                                                fields.length.toString()
-                                            ]);
-                                        }}
-                                        block
-                                        icon={<PlusOutlined />}
-                                        style={{ marginTop: 16 }}
-                                    >
-                                        Adicionar outro contrato a este lote
-                                    </Button>
-                                </>
-                            )}
-                        </Form.List>
-                    </Form>
-                </RightPane>
-            </SplitLayout>
-        </WideModal>
+                                                </Collapse.Panel>
+                                            ))}
+                                        </StyledCollapse>
+
+                                        <Button
+                                            type="dashed"
+                                            onClick={() => {
+                                                add({
+                                                    contract_key: '',
+                                                    month_ref:
+                                                        new Date().getMonth() +
+                                                        1,
+                                                    year_ref:
+                                                        new Date().getFullYear(),
+                                                    fixedItems: {},
+                                                    dynamicCredits: [],
+                                                    dynamicDebits: []
+                                                });
+                                                setActiveKeys([
+                                                    ...activeKeys,
+                                                    fields.length.toString()
+                                                ]);
+                                            }}
+                                            block
+                                            icon={<PlusOutlined />}
+                                            style={{ marginTop: 16 }}
+                                        >
+                                            Adicionar outro contrato a este lote
+                                        </Button>
+                                    </>
+                                )}
+                            </Form.List>
+                        </Form>
+                    </RightPane>
+                </SplitLayout>
+            </WideModal>
+
+            <DuplicateExtractModal
+                isOpen={duplicateModalOpen}
+                onClose={handleCloseDuplicateModal}
+                onConfirm={handleConfirmDuplicate}
+                details={conflictDetails}
+                loading={confirmingDuplicate}
+            />
+        </>
     );
 };

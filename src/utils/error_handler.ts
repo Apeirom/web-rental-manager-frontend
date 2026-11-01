@@ -1,19 +1,26 @@
 import axios from 'axios';
 import { message } from 'antd';
 
-interface IApiErrorDetailObject {
+export interface IApiErrorDetails {
+    tenant_name?: string;
+    property_name?: string;
+    month_ref?: number;
+    year_ref?: number;
+    duplicate_type?: 'database' | 'intra_batch';
+    [key: string]: unknown;
+}
+
+export interface IApiErrorDetailObject {
     code?: string;
     message?: string;
     translation?: string;
+    details?: IApiErrorDetails;
 }
 
-interface IApiErrorPayload {
+export interface IApiErrorPayload {
     detail?: IApiErrorDetailObject | string;
 }
 
-/**
- * Extrai o código de erro da API (detail.code), se presente.
- */
 export const extractApiErrorCode = (error: unknown): string | undefined => {
     if (!axios.isAxiosError(error)) {
         return undefined;
@@ -32,9 +39,26 @@ export const extractApiErrorCode = (error: unknown): string | undefined => {
     return undefined;
 };
 
-/**
- * Extrai a mensagem amigável traduzida retornada pela API (detail.translation) ou recorre ao fallback.
- */
+export const extractApiErrorData = (
+    error: unknown
+): IApiErrorDetailObject | undefined => {
+    if (!axios.isAxiosError(error)) {
+        return undefined;
+    }
+
+    const responseData = error.response?.data as IApiErrorPayload | undefined;
+    if (
+        responseData &&
+        typeof responseData === 'object' &&
+        responseData.detail &&
+        typeof responseData.detail === 'object'
+    ) {
+        return responseData.detail;
+    }
+
+    return undefined;
+};
+
 export const extractApiErrorMessage = async (
     error: unknown,
     fallbackMessage: string
@@ -48,7 +72,6 @@ export const extractApiErrorMessage = async (
 
     let responseData = error.response?.data;
 
-    // Lida com erros ocorridos em requisições com responseType: 'blob'
     if (responseData instanceof Blob) {
         try {
             const rawText = await responseData.text();
@@ -65,7 +88,6 @@ export const extractApiErrorMessage = async (
     ) {
         const { detail } = responseData as IApiErrorPayload;
 
-        // Prioridade máxima: detail.translation (erros customizados da API)
         if (
             typeof detail === 'object' &&
             detail !== null &&
@@ -83,9 +105,6 @@ export const extractApiErrorMessage = async (
     return fallbackMessage;
 };
 
-/**
- * Extrai a tradução do erro da API e a exibe em um toast do Ant Design (message.error).
- */
 export const notifyApiError = async (
     error: unknown,
     fallbackMessage: string
