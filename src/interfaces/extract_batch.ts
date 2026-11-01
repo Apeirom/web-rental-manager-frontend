@@ -13,4 +13,5 @@ export interface IExtractBatch {
 export interface IExtractBatchPayload {
     file_path?: string | null;
     extracts: IExtractPayload[];
+    confirm_duplicate?: boolean;
 }

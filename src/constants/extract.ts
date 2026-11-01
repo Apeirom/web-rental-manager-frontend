@@ -80,3 +80,6 @@ export const EXTRACT_DYNAMIC_CATEGORY_OPTIONS =
     EXTRACT_ITEM_CATEGORY_OPTIONS.filter(
         ({ value }) => EXTRACT_ITEM_CATEGORIES[value].kind === 'dynamic'
     );
+
+export const DUPLICATE_EXTRACT_ERROR_CODE = 'RM-0034';
+export const EXTRACT_CONFIRMATION_COOLDOWN_SECONDS = 3;
