@@ -10,17 +10,16 @@ jobs:
     build:
         runs-on: ubuntu-latest
 
-        strategy:
-            matrix:
-                node-version: [14.x]
-                # See supported Node.js release schedule at https://nodejs.org/en/about/releases/
-
         steps:
-            - uses: actions/checkout@v2
-            - name: Use Node.js ${{ matrix.node-version }}
-              uses: actions/setup-node@v2
+            - uses: actions/checkout@v4
+            - uses: pnpm/action-setup@v4
               with:
-                  node-version: ${{ matrix.node-version }}
-            - run: yarn install
-            - run: yarn lint
-            - run: yarn build
+                  version: 11
+            - name: Use Node.js 22.x
+              uses: actions/setup-node@v4
+              with:
+                  node-version: 22.x
+                  cache: 'pnpm'
+            - run: pnpm install --frozen-lockfile
+            - run: pnpm lint
+            - run: pnpm build
