@@ -1,5 +1,13 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Table, Button, Switch, Input, Space, Tooltip } from 'antd';
+import {
+    Table,
+    Button,
+    Switch,
+    Input,
+    Space,
+    Tooltip,
+    TablePaginationConfig
+} from 'antd';
 import { PlusOutlined, EditOutlined, ReloadOutlined } from '@ant-design/icons';
 import { ITenant } from 'interfaces/tenant';
 import { TenantService } from 'services/tenant_service';
@@ -48,10 +56,10 @@ export const TenantTable: React.FC = () => {
         return () => clearTimeout(timeoutId);
     }, [fetchTenants]);
 
-    const handleTableChange = (pagination: any) => {
+    const handleTableChange = (pagination: TablePaginationConfig) => {
         setTableParams({
-            current: pagination.current,
-            pageSize: pagination.pageSize
+            current: pagination.current || 1,
+            pageSize: pagination.pageSize || 10
         });
     };
 
@@ -81,7 +89,7 @@ export const TenantTable: React.FC = () => {
             title: 'Ações',
             key: 'actions',
             align: 'right' as const,
-            render: (_: any, record: ITenant) => (
+            render: (_: unknown, record: ITenant) => (
                 <Tooltip title="Editar Inquilino">
                     <Button
                         type="text"

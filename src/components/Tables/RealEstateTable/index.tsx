@@ -1,5 +1,13 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Table, Button, Switch, Input, Space, Tooltip } from 'antd';
+import {
+    Table,
+    Button,
+    Switch,
+    Input,
+    Space,
+    Tooltip,
+    TablePaginationConfig
+} from 'antd';
 import { PlusOutlined, EditOutlined, ReloadOutlined } from '@ant-design/icons';
 import { IRealEstate } from 'interfaces/real_estate';
 import { RealEstateService } from 'services/real_estate_service';
@@ -50,10 +58,10 @@ export const RealEstateTable: React.FC = () => {
         return () => clearTimeout(timeoutId);
     }, [fetchRealEstates]);
 
-    const handleTableChange = (pagination: any) => {
+    const handleTableChange = (pagination: TablePaginationConfig) => {
         setTableParams({
-            current: pagination.current,
-            pageSize: pagination.pageSize
+            current: pagination.current || 1,
+            pageSize: pagination.pageSize || 10
         });
     };
 
@@ -87,7 +95,7 @@ export const RealEstateTable: React.FC = () => {
             title: 'Ações',
             key: 'actions',
             align: 'right' as const,
-            render: (_: any, record: IRealEstate) => (
+            render: (_: unknown, record: IRealEstate) => (
                 <Tooltip title="Editar">
                     <Button
                         type="text"

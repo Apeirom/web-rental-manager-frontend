@@ -103,7 +103,7 @@ export const ContractModal: React.FC<ContractModalProps> = ({
         setIsNewFile(false);
     }, [isOpen, initialData, form]);
 
-    const handleFileChange = (info: UploadChangeParam<UploadFile> | any) => {
+    const handleFileChange = (info: UploadChangeParam<UploadFile>) => {
         const file = info.file as unknown as File;
         if (file) {
             setSelectedFile(file);

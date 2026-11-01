@@ -32,7 +32,7 @@ export const PdfUploader: React.FC<PdfUploaderProps> = ({
                         <Upload
                             beforeUpload={() => false}
                             showUploadList={false}
-                            onChange={onFileChange as any}
+                            onChange={onFileChange}
                             accept=".pdf"
                         >
                             <Button icon={<UploadOutlined />} type="primary">
@@ -56,7 +56,7 @@ export const PdfUploader: React.FC<PdfUploaderProps> = ({
         <Upload.Dragger
             beforeUpload={() => false}
             showUploadList={false}
-            onChange={onFileChange as any}
+            onChange={onFileChange}
             accept=".pdf"
             style={{
                 width: '100%',
