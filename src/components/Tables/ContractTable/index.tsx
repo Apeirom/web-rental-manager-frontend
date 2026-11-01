@@ -1,5 +1,14 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Table, Button, Switch, Input, Tag, Space, Tooltip } from 'antd';
+import {
+    Table,
+    Button,
+    Switch,
+    Input,
+    Tag,
+    Space,
+    Tooltip,
+    TablePaginationConfig
+} from 'antd';
 import { PlusOutlined, EditOutlined, ReloadOutlined } from '@ant-design/icons';
 import { IContract } from 'interfaces/contract';
 import { ContractService } from 'services/contract_service';
@@ -48,10 +57,10 @@ export const ContractTable: React.FC = () => {
         return () => clearTimeout(timeoutId);
     }, [fetchContracts]);
 
-    const handleTableChange = (pagination: any) => {
+    const handleTableChange = (pagination: TablePaginationConfig) => {
         setTableParams({
-            current: pagination.current,
-            pageSize: pagination.pageSize
+            current: pagination.current || 1,
+            pageSize: pagination.pageSize || 10
         });
     };
 
@@ -76,7 +85,7 @@ export const ContractTable: React.FC = () => {
         {
             title: 'Imóvel',
             key: 'property',
-            render: (_: any, record: IContract) => (
+            render: (_: unknown, record: IContract) => (
                 <span>
                     {record.property.property_name}
                     {record.room_name ? ` (${record.room_name})` : ''}
@@ -107,7 +116,7 @@ export const ContractTable: React.FC = () => {
             title: 'Ações',
             key: 'actions',
             align: 'right' as const,
-            render: (_: any, record: IContract) => (
+            render: (_: unknown, record: IContract) => (
                 <Tooltip title="Editar Contrato">
                     <Button
                         type="text"

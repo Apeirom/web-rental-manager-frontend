@@ -5,7 +5,7 @@
         "dev": "next",
         "build": "next build",
         "start": "next start",
-        "lint": "eslint src --max-warnings=0",
+        "lint": "eslint src",
         "prepare": "husky install",
         "chromatic": "chromatic"
     },

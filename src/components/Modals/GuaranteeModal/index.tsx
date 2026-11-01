@@ -70,18 +70,21 @@ export const GuaranteeModal: React.FC<GuaranteeModalProps> = ({
         onClose();
     };
 
-    const handleSubmit = async (values: any) => {
+    const handleSubmit = async (values: Record<string, unknown>) => {
         setLoading(true);
         try {
             // Preparação do Payload formatando datas para strings (YYYY-MM-DD)
-            const payload: any = { ...values };
+            const payload: Record<string, unknown> = { ...values };
 
             if (payload.type === 'deposit' && payload.deposit_date) {
-                payload.deposit_date =
-                    payload.deposit_date.format('YYYY-MM-DD');
+                payload.deposit_date = dayjs(
+                    payload.deposit_date as string | Date
+                ).format('YYYY-MM-DD');
             }
             if (payload.type === 'bail_insurance' && payload.validity) {
-                payload.validity = payload.validity.format('YYYY-MM-DD');
+                payload.validity = dayjs(
+                    payload.validity as string | Date
+                ).format('YYYY-MM-DD');
             }
             let savedGuarantee: IGuarantee;
 

@@ -1,5 +1,13 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Table, Button, Select, Space, Tooltip, Tag } from 'antd';
+import {
+    Table,
+    Button,
+    Select,
+    Space,
+    Tooltip,
+    Tag,
+    TablePaginationConfig
+} from 'antd';
 import { PlusOutlined, EditOutlined, ReloadOutlined } from '@ant-design/icons';
 import { formatBRL, formatDate } from 'utils/formatters';
 
@@ -50,10 +58,10 @@ export const GuaranteeTable: React.FC = () => {
         return () => clearTimeout(timeoutId);
     }, [fetchGuarantees]);
 
-    const handleTableChange = (pagination: any) => {
+    const handleTableChange = (pagination: TablePaginationConfig) => {
         setTableParams({
-            current: pagination.current,
-            pageSize: pagination.pageSize
+            current: pagination.current || 1,
+            pageSize: pagination.pageSize || 10
         });
     };
 
@@ -90,7 +98,7 @@ export const GuaranteeTable: React.FC = () => {
         {
             title: 'Identificação / Referência',
             key: 'identification',
-            render: (_: any, record: IGuarantee) => {
+            render: (_: unknown, record: IGuarantee) => {
                 if (record.type === 'guarantor')
                     return <strong>{record.name}</strong>;
                 if (record.type === 'bail_insurance')
@@ -102,7 +110,7 @@ export const GuaranteeTable: React.FC = () => {
         {
             title: 'Valor / Documento',
             key: 'value_doc',
-            render: (_: any, record: IGuarantee) => {
+            render: (_: unknown, record: IGuarantee) => {
                 if (record.type === 'guarantor') return record.document_number;
                 if (record.type === 'bail_insurance')
                     return formatBRL(record.value);
@@ -113,7 +121,7 @@ export const GuaranteeTable: React.FC = () => {
         {
             title: 'Informação Adicional',
             key: 'extra_info',
-            render: (_: any, record: IGuarantee) => {
+            render: (_: unknown, record: IGuarantee) => {
                 if (record.type === 'bail_insurance') {
                     return `Válido até: ${record.validity}`;
                 }
@@ -139,7 +147,7 @@ export const GuaranteeTable: React.FC = () => {
             key: 'actions',
             align: 'right' as const,
             width: 100,
-            render: (_: any, record: IGuarantee) => (
+            render: (_: unknown, record: IGuarantee) => (
                 <Tooltip title="Editar">
                     <Button
                         type="text"

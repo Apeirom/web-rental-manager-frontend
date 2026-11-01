@@ -59,7 +59,7 @@ export const UserManagement: React.FC = () => {
             title: 'Permissão (Role)',
             key: 'role',
             width: 200,
-            render: (_: any, record: IUser) => (
+            render: (_: unknown, record: IUser) => (
                 <Select
                     value={record.role}
                     style={{ width: '100%' }}
