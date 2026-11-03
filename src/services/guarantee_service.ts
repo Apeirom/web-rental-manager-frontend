@@ -13,6 +13,7 @@ export interface GetGuaranteesParams {
     limit?: number;
     search_term?: string;
     guarantee_type?: GuaranteeTypeEnum | string;
+    guarantee_types?: string[];
 }
 
 export const GuaranteeService = {
@@ -20,7 +21,10 @@ export const GuaranteeService = {
         params: GetGuaranteesParams
     ): Promise<IPaginatedResponse<IGuarantee>> => {
         const { data } = await api.get<IPaginatedResponse<IGuarantee>>(ROUTE, {
-            params
+            params,
+            paramsSerializer: {
+                indexes: null
+            }
         });
         return data;
     },

@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Select, Spin } from 'antd';
 import { IContract } from 'interfaces/contract';
 import { ContractService } from 'services/contract_service';
+import { useDebounce } from 'hooks/useDebounce';
 import { SelectContainer, Label } from '../sharedStyles';
 
 interface ContractDropdownProps {
@@ -21,6 +22,9 @@ export const ContractDropdown: React.FC<ContractDropdownProps> = ({
 }) => {
     const [contracts, setContracts] = useState<IContract[]>([]);
     const [loading, setLoading] = useState(false);
+    const [searchTerm, setSearchTerm] = useState('');
+    const debouncedSearch = useDebounce(searchTerm, 400);
+    const isFirstMount = useRef(true);
 
     const fetchContracts = async (search?: string) => {
         setLoading(true);
@@ -43,9 +47,17 @@ export const ContractDropdown: React.FC<ContractDropdownProps> = ({
         fetchContracts();
     }, []);
 
+    useEffect(() => {
+        if (isFirstMount.current) {
+            isFirstMount.current = false;
+            return;
+        }
+        fetchContracts(debouncedSearch);
+    }, [debouncedSearch]);
+
     const formatContractLabel = (contract: IContract) => {
-        const tenantName = contract.tenant.name;
-        const propertyName = contract.property.property_name;
+        const tenantName = contract.tenant?.name || 'Inquilino';
+        const propertyName = contract.property?.property_name || 'Imóvel';
         const roomName = contract.room_name ? ` - ${contract.room_name}` : '';
 
         return `${tenantName} | ${propertyName}${roomName} (${
@@ -59,10 +71,11 @@ export const ContractDropdown: React.FC<ContractDropdownProps> = ({
             <Select
                 showSearch
                 filterOption={false}
-                onSearch={(val) => fetchContracts(val)}
+                onSearch={setSearchTerm}
                 value={value || undefined}
                 placeholder={placeholder}
-                disabled={disabled || loading}
+                loading={loading}
+                disabled={disabled}
                 onChange={onChange}
                 options={contracts.map((c) => ({
                     value: c.key,
