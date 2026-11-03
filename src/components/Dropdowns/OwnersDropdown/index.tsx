@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Select, Spin } from 'antd';
 import { IOwner } from 'interfaces/owner';
 import { OwnerService } from 'services/owner_service';
+import { useDebounce } from 'hooks/useDebounce';
 import { SelectContainer, Label } from '../sharedStyles';
 
 interface OwnersDropdownProps {
@@ -27,6 +28,9 @@ export const OwnersDropdown: React.FC<OwnersDropdownProps> = ({
 }) => {
     const [owners, setOwners] = useState<IOwner[]>([]);
     const [loading, setLoading] = useState(false);
+    const [searchTerm, setSearchTerm] = useState('');
+    const debouncedSearch = useDebounce(searchTerm, 400);
+    const isFirstMount = useRef(true);
 
     const fetchOwners = async (search?: string) => {
         setLoading(true);
@@ -47,6 +51,14 @@ export const OwnersDropdown: React.FC<OwnersDropdownProps> = ({
     useEffect(() => {
         fetchOwners();
     }, []);
+
+    useEffect(() => {
+        if (isFirstMount.current) {
+            isFirstMount.current = false;
+            return;
+        }
+        fetchOwners(debouncedSearch);
+    }, [debouncedSearch]);
 
     useEffect(() => {
         if (!value || owners.some((owner) => owner.key === value)) return;
@@ -75,11 +87,12 @@ export const OwnersDropdown: React.FC<OwnersDropdownProps> = ({
             <Select
                 showSearch
                 filterOption={false}
-                onSearch={(search) => fetchOwners(search)}
+                onSearch={setSearchTerm}
                 value={value || undefined}
                 placeholder={placeholder}
                 allowClear={allowClear}
-                disabled={disabled || loading}
+                loading={loading}
+                disabled={disabled}
                 onChange={(selectedValue) => {
                     if (selectedValue) {
                         onChange?.(selectedValue);

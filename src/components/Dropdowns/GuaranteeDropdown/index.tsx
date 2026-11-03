@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Select, Spin } from 'antd';
 import { GuaranteeService } from 'services/guarantee_service';
 import { IGuarantee } from 'interfaces/guarantee';
+import { useDebounce } from 'hooks/useDebounce';
 import { SelectContainer, Label } from '../sharedStyles';
 
 const formatBRL = (val: number): string =>
@@ -16,7 +17,7 @@ interface GuaranteeDropdownProps {
     label?: string;
     disabled?: boolean;
     reloadTrigger?: number;
-    preloadedOption?: IGuarantee | null; // A MÁGICA: Recebe a opção recém-criada
+    preloadedOption?: IGuarantee | null;
 }
 
 export const GuaranteeDropdown: React.FC<GuaranteeDropdownProps> = ({
@@ -29,6 +30,9 @@ export const GuaranteeDropdown: React.FC<GuaranteeDropdownProps> = ({
 }) => {
     const [guarantees, setGuarantees] = useState<IGuarantee[]>([]);
     const [loading, setLoading] = useState<boolean>(false);
+    const [searchTerm, setSearchTerm] = useState('');
+    const debouncedSearch = useDebounce(searchTerm, 400);
+    const isFirstMount = useRef(true);
 
     const fetchGuarantees = async (search?: string) => {
         setLoading(true);
@@ -36,6 +40,7 @@ export const GuaranteeDropdown: React.FC<GuaranteeDropdownProps> = ({
             const response = await GuaranteeService.getPaginate({
                 skip: 0,
                 limit: 30,
+                guarantee_types: ['guarantor', 'bail_insurance'],
                 search_term: search || undefined
             });
             setGuarantees(response.data);
@@ -50,6 +55,14 @@ export const GuaranteeDropdown: React.FC<GuaranteeDropdownProps> = ({
         fetchGuarantees();
     }, [reloadTrigger]);
 
+    useEffect(() => {
+        if (isFirstMount.current) {
+            isFirstMount.current = false;
+            return;
+        }
+        fetchGuarantees(debouncedSearch);
+    }, [debouncedSearch]);
+
     const formatOptionLabel = (g: IGuarantee) => {
         if (g.type === 'deposit') return `Caução: ${formatBRL(g.amount)}`;
         if (g.type === 'guarantor')
@@ -61,7 +74,6 @@ export const GuaranteeDropdown: React.FC<GuaranteeDropdownProps> = ({
         return 'Garantia Desconhecida';
     };
 
-    // Monta as opções e garante que a opção recém-criada (ou do edit) esteja na lista!
     const options = guarantees.map((g) => ({
         value: g.key,
         label: formatOptionLabel(g)
@@ -82,10 +94,11 @@ export const GuaranteeDropdown: React.FC<GuaranteeDropdownProps> = ({
             {label && <Label>{label}</Label>}
             <Select
                 showSearch
-                filterOption={false} // Desliga o filtro local (delega pro backend)
-                onSearch={(val) => fetchGuarantees(val)} // Busca no backend
+                filterOption={false}
+                onSearch={setSearchTerm}
                 allowClear
-                disabled={disabled || loading}
+                loading={loading}
+                disabled={disabled}
                 placeholder="Selecione uma garantia"
                 value={value || undefined}
                 onChange={onChange}
