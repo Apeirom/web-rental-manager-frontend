@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Select, Spin } from 'antd';
 import { IRealEstate } from 'interfaces/real_estate';
 import { RealEstateService } from 'services/real_estate_service';
+import { useDebounce } from 'hooks/useDebounce';
 import { SelectContainer, Label } from '../sharedStyles';
 
 interface RealEstateDropdownProps {
@@ -21,6 +22,9 @@ export const RealEstateDropdown: React.FC<RealEstateDropdownProps> = ({
 }) => {
     const [realEstates, setRealEstates] = useState<IRealEstate[]>([]);
     const [loading, setLoading] = useState(false);
+    const [searchTerm, setSearchTerm] = useState('');
+    const debouncedSearch = useDebounce(searchTerm, 400);
+    const isFirstMount = useRef(true);
 
     const fetchRealEstates = async (search?: string) => {
         setLoading(true);
@@ -42,16 +46,25 @@ export const RealEstateDropdown: React.FC<RealEstateDropdownProps> = ({
         fetchRealEstates();
     }, []);
 
+    useEffect(() => {
+        if (isFirstMount.current) {
+            isFirstMount.current = false;
+            return;
+        }
+        fetchRealEstates(debouncedSearch);
+    }, [debouncedSearch]);
+
     return (
         <SelectContainer>
             {label && <Label>{label}</Label>}
             <Select
                 showSearch
                 filterOption={false}
-                onSearch={(val) => fetchRealEstates(val)}
+                onSearch={setSearchTerm}
                 value={value || undefined}
                 placeholder={placeholder}
-                disabled={disabled || loading}
+                loading={loading}
+                disabled={disabled}
                 onChange={onChange}
                 options={realEstates.map((re) => ({
                     value: re.key,

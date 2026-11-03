@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Select, Spin } from 'antd';
 import { ITenant } from 'interfaces/tenant';
 import { TenantService } from 'services/tenant_service';
+import { useDebounce } from 'hooks/useDebounce';
 import { SelectContainer, Label } from '../sharedStyles';
 
 interface TenantDropdownProps {
@@ -21,6 +22,9 @@ export const TenantDropdown: React.FC<TenantDropdownProps> = ({
 }) => {
     const [tenants, setTenants] = useState<ITenant[]>([]);
     const [loading, setLoading] = useState(false);
+    const [searchTerm, setSearchTerm] = useState('');
+    const debouncedSearch = useDebounce(searchTerm, 400);
+    const isFirstMount = useRef(true);
 
     const fetchTenants = async (search?: string) => {
         setLoading(true);
@@ -42,16 +46,25 @@ export const TenantDropdown: React.FC<TenantDropdownProps> = ({
         fetchTenants();
     }, []);
 
+    useEffect(() => {
+        if (isFirstMount.current) {
+            isFirstMount.current = false;
+            return;
+        }
+        fetchTenants(debouncedSearch);
+    }, [debouncedSearch]);
+
     return (
         <SelectContainer>
             {label && <Label>{label}</Label>}
             <Select
                 showSearch
                 filterOption={false}
-                onSearch={(val) => fetchTenants(val)}
+                onSearch={setSearchTerm}
                 value={value || undefined}
                 placeholder={placeholder}
-                disabled={disabled || loading}
+                loading={loading}
+                disabled={disabled}
                 onChange={onChange}
                 options={tenants.map((t) => ({
                     value: t.key,
