@@ -3,6 +3,7 @@ import { Form, Input, Button, message, Divider } from 'antd';
 import { useAuth } from 'hooks/useAuth';
 import { UserService } from 'services/user_service';
 import { IUserUpdatePayload } from 'interfaces/user';
+import { notifyApiError } from 'utils/error_handler';
 
 export const MyProfileForm: React.FC = () => {
     const { user, signOut } = useAuth();
@@ -21,17 +22,15 @@ export const MyProfileForm: React.FC = () => {
     const handleSubmit = async (values: IUserUpdatePayload) => {
         setLoading(true);
         try {
-            // Se a senha estiver vazia, não enviamos no payload para não sobrescrever
             const payload = { ...values };
             if (!payload.password) {
                 delete payload.password;
+                delete payload.current_password;
             }
 
             await UserService.updateMe(payload);
             message.success('Perfil atualizado com sucesso!');
 
-            // Se o e-mail ou a senha mudou, o token antigo pode ser invalidado ou os dados do contexto ficarão velhos.
-            // Uma prática segura é pedir para logar novamente.
             if (
                 payload.password ||
                 (payload.email && payload.email !== user?.email)
@@ -42,8 +41,7 @@ export const MyProfileForm: React.FC = () => {
                 setTimeout(() => signOut(), 2000);
             }
         } catch (error) {
-            message.error('Erro ao atualizar o perfil.');
-            console.error(error);
+            await notifyApiError(error, 'Erro ao atualizar o perfil.');
         } finally {
             setLoading(false);
         }
@@ -79,6 +77,28 @@ export const MyProfileForm: React.FC = () => {
             <p style={{ color: '#868e96', fontSize: '12px', marginBottom: 16 }}>
                 Deixe em branco se não quiser alterar sua senha atual.
             </p>
+
+            <Form.Item
+                label="Senha Atual"
+                name="current_password"
+                dependencies={['password']}
+                rules={[
+                    ({ getFieldValue }) => ({
+                        validator(_, value) {
+                            if (getFieldValue('password') && !value) {
+                                return Promise.reject(
+                                    new Error(
+                                        'Informe a senha atual para alterar a senha'
+                                    )
+                                );
+                            }
+                            return Promise.resolve();
+                        }
+                    })
+                ]}
+            >
+                <Input.Password placeholder="Digite sua senha atual" />
+            </Form.Item>
 
             <Form.Item label="Nova Senha" name="password">
                 <Input.Password placeholder="Digite a nova senha" />

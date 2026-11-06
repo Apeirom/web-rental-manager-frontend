@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Table, Button, Input, Space, Select, message } from 'antd';
-import { PlusOutlined, ReloadOutlined } from '@ant-design/icons';
+import { PlusOutlined, ReloadOutlined, KeyOutlined } from '@ant-design/icons';
 import { IUser } from 'interfaces/user';
 import { UserService } from 'services/user_service';
 import { UserModal } from 'components/Modals/UserModal';
+import { ResetPasswordModal } from 'components/Modals/ResetPasswordModal';
 
 export const UserManagement: React.FC = () => {
     const [users, setUsers] = useState<IUser[]>([]);
@@ -11,19 +12,22 @@ export const UserManagement: React.FC = () => {
     const [loading, setLoading] = useState(false);
     const [searchText, setSearchText] = useState('');
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [resetUser, setResetUser] = useState<IUser | null>(null);
 
     const [tableParams, setTableParams] = useState({
         current: 1,
         pageSize: 10
     });
 
+    const { current, pageSize } = tableParams;
+
     const fetchUsers = useCallback(async () => {
         setLoading(true);
         try {
-            const skip = (tableParams.current - 1) * tableParams.pageSize;
+            const skip = (current - 1) * pageSize;
             const response = await UserService.getPaginate({
                 skip,
-                limit: tableParams.pageSize,
+                limit: pageSize,
                 search_term: searchText || undefined
             });
             setUsers(response.data);
@@ -33,7 +37,7 @@ export const UserManagement: React.FC = () => {
         } finally {
             setLoading(false);
         }
-    }, [searchText, tableParams.current, tableParams.pageSize]);
+    }, [searchText, current, pageSize]);
 
     useEffect(() => {
         const timeoutId = setTimeout(() => {
@@ -58,7 +62,7 @@ export const UserManagement: React.FC = () => {
         {
             title: 'Permissão (Role)',
             key: 'role',
-            width: 200,
+            width: 180,
             render: (_: unknown, record: IUser) => (
                 <Select
                     value={record.role}
@@ -69,6 +73,20 @@ export const UserManagement: React.FC = () => {
                         { value: 'master', label: 'Master' }
                     ]}
                 />
+            )
+        },
+        {
+            title: 'Ações',
+            key: 'actions',
+            width: 160,
+            render: (_: unknown, record: IUser) => (
+                <Button
+                    icon={<KeyOutlined />}
+                    size="small"
+                    onClick={() => setResetUser(record)}
+                >
+                    Redefinir Senha
+                </Button>
             )
         }
     ];
@@ -118,14 +136,21 @@ export const UserManagement: React.FC = () => {
                     current: tableParams.current,
                     pageSize: tableParams.pageSize,
                     total,
-                    onChange: (page, pageSize) =>
-                        setTableParams({ current: page, pageSize })
+                    onChange: (page, newPageSize) =>
+                        setTableParams({ current: page, pageSize: newPageSize })
                 }}
             />
 
             <UserModal
                 isOpen={isModalOpen}
                 onClose={() => setIsModalOpen(false)}
+                onSuccess={fetchUsers}
+            />
+
+            <ResetPasswordModal
+                isOpen={!!resetUser}
+                user={resetUser}
+                onClose={() => setResetUser(null)}
                 onSuccess={fetchUsers}
             />
         </div>

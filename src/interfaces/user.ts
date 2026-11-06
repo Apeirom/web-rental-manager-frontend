@@ -9,6 +9,7 @@ export interface IUserUpdatePayload {
     name?: string;
     email?: string;
     password?: string;
+    current_password?: string;
 }
 
 export interface IUserCreatePayload {
