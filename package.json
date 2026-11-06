@@ -23,7 +23,7 @@
         "axios": "^1.16.1",
         "dayjs": "^1.11.21",
         "javascript-time-ago": "^2.5.9",
-        "next": "^12.1.0",
+        "next": "^14.2.23",
         "next-images": "^1.8.2",
         "react": "^18.2.0",
         "react-dom": "^18.2.0",

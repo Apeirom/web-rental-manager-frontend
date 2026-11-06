@@ -35,5 +35,15 @@ export const UserService = {
             role
         });
         return data;
+    },
+
+    resetPassword: async (key: string, newPassword: string): Promise<IUser> => {
+        const { data } = await api.post<IUser>(
+            `${ROUTE}/${key}/reset-password`,
+            {
+                new_password: newPassword
+            }
+        );
+        return data;
     }
 };
