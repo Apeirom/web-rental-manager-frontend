@@ -422,13 +422,13 @@ export const ExtractBatchModal: React.FC<ExtractBatchModalProps> = ({
                     </LeftPane>
 
                     <RightPane>
-                        <ExtractBatchTotals />
-
                         <Form
                             form={form}
                             layout="vertical"
                             onFinish={handleSubmit}
                         >
+                            <ExtractBatchTotals />
+
                             <Form.List name="extracts">
                                 {(fields, { add, remove }) => (
                                     <>
