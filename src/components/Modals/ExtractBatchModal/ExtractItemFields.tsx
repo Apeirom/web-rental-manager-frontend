@@ -14,6 +14,7 @@ import {
 import { PlusOutlined, DeleteOutlined } from '@ant-design/icons';
 import {
     EXTRACT_DYNAMIC_CATEGORY_OPTIONS,
+    EXTRACT_ITEM_CATEGORIES,
     ExtractItemCategory
 } from 'constants/extract';
 import { parseCurrencyInput } from 'utils/formatters';
@@ -79,9 +80,32 @@ export const ExtractItemFields: React.FC<ExtractItemFieldsProps> = ({
             return;
         }
 
-        // Chama a função add do Form.List correto!
         if (modalConfig.addFn) modalConfig.addFn(newItem);
         setModalConfig({ ...modalConfig, visible: false });
+    };
+
+    const handleCategoryChange = (category: ExtractItemCategory) => {
+        const categoryDefinition = EXTRACT_ITEM_CATEGORIES[category];
+        setNewItem((current) => {
+            const shouldUpdateDescription =
+                !current.description ||
+                Object.values(EXTRACT_ITEM_CATEGORIES).some(
+                    (item) => item.description === current.description
+                );
+
+            return {
+                ...current,
+                category,
+                description: shouldUpdateDescription
+                    ? categoryDefinition.description
+                    : current.description,
+                is_withheld_at_source:
+                    categoryDefinition.is_withheld_at_source !== null &&
+                    categoryDefinition.is_withheld_at_source !== undefined
+                        ? categoryDefinition.is_withheld_at_source
+                        : current.is_withheld_at_source
+            };
+        });
     };
 
     return (
@@ -371,12 +395,7 @@ export const ExtractItemFields: React.FC<ExtractItemFieldsProps> = ({
                         <Select
                             style={{ width: '100%' }}
                             value={newItem.category}
-                            onChange={(category: ExtractItemCategory) =>
-                                setNewItem((current) => ({
-                                    ...current,
-                                    category
-                                }))
-                            }
+                            onChange={handleCategoryChange}
                             options={EXTRACT_DYNAMIC_CATEGORY_OPTIONS}
                         />
                     </div>

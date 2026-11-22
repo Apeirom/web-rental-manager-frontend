@@ -59,6 +59,12 @@ export const EXTRACT_ITEM_CATEGORIES = {
         is_withheld_at_source: null,
         is_credit: null
     },
+    condominium: {
+        description: 'Condomínio',
+        kind: 'dynamic',
+        is_withheld_at_source: false,
+        is_credit: false
+    },
     others: {
         description: 'Outros',
         kind: 'dynamic',
